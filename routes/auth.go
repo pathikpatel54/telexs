@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"telexs/config"
 	"telexs/models"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -43,7 +44,7 @@ func init() {
 		RedirectURL:  "http://localhost:8080/auth/google/callback",
 		ClientID:     config.Keys.GoogleClientID,
 		ClientSecret: config.Keys.GoogleClientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
 		Endpoint:     google.Endpoint,
 	}
 }
@@ -96,7 +97,6 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	generateSession(content, w, r, ac)
-
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -124,7 +124,7 @@ func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httpro
 	})
 
 	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, strconv.Itoa(int(result.DeletedCount))+"Sessions has been deleted")
+	io.WriteString(w, strconv.Itoa(int(result.DeletedCount))+" Sessions has been deleted")
 }
 
 func getUserInfo(state string, code string) ([]byte, error) {
@@ -164,7 +164,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 	http.SetCookie(w, &http.Cookie{
 		Name:   "session",
 		Value:  sID.String(),
-		MaxAge: 5000,
+		MaxAge: 60,
 		Path:   "/",
 	})
 	t := true
@@ -176,6 +176,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		"$set": &models.Session{
 			Email:     user.Email,
 			SessionID: sID.String(),
+			Expires:   time.Now().Add(time.Second * 60),
 		},
 	}, &options.UpdateOptions{Upsert: &t})
 
