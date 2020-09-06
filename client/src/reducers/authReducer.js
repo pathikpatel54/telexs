@@ -11,7 +11,7 @@ export default (state=INITIAL_STATE, action) => {
         case FETCH_USER:
             return { ...state, loading: true };
         case FETCH_USER_SUCCESS:
-            return { ...state, loading: false, error: false, data: action.payload };
+            return { ...state, loading: false, error: null, data: action.payload };
         case FETCH_USER_ERROR:
             return { ...state, loading: false, error: action.payload, data: null };
         default:
