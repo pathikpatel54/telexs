@@ -167,6 +167,7 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 
 	err1 := ac.client.Database("db").Collection("session").FindOne(ac.ctx, bson.M{"sessionid": cookie.Value}).Decode(&session)
 
+	fmt.Println(session)
 	if err1 != nil {
 		log.Println("Error retreiving Session")
 		return false, models.User{}
