@@ -2,7 +2,20 @@ import React from "react";
 
 const Landing = () => {
     return (
-        <h1>Landing</h1>
+        <div>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+            <h1>Landing</h1>
+        </div>
     )
 }
 
