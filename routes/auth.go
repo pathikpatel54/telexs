@@ -160,6 +160,8 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 		return false, models.User{}
 	}
 
+	fmt.Println(cookie.Value)
+
 	var user models.User
 	var session models.Session
 
