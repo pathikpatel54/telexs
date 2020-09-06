@@ -68,6 +68,7 @@ func (ac AuthController) Index(w http.ResponseWriter, r *http.Request, _ httprou
 	if logged {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(user)
+		return
 	}
 
 	io.WriteString(w, resp)
@@ -160,14 +161,11 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 		return false, models.User{}
 	}
 
-	fmt.Println(cookie.Value)
-
 	var user models.User
 	var session models.Session
 
 	err1 := ac.client.Database("db").Collection("sessions").FindOne(ac.ctx, bson.M{"sessionid": cookie.Value}).Decode(&session)
 
-	fmt.Println(session)
 	if err1 != nil {
 		log.Println("Error retreiving Session")
 		return false, models.User{}
