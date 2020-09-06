@@ -8,6 +8,7 @@ import (
 type vars struct {
 	GoogleClientID     string
 	GoogleClientSecret string
+	MongodbUser        string
 }
 
 //Keys contains evironment variables
