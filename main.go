@@ -7,10 +7,9 @@ import (
 	"telexs/config"
 	"telexs/routes"
 
+	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
@@ -23,7 +22,7 @@ func main() {
 	router.GET("/api/user", ac.User)
 	router.GET("/api/logout", ac.Logout)
 
-	err := http.ListenAndServe(":8080", router)
+	err := http.ListenAndServe(":5000", router)
 
 	if err != nil {
 		log.Panic(err)

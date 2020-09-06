@@ -12,6 +12,7 @@ class App extends Component{
     }
 
     render() {
+        console.log(this.props.auth)
         return (
             <BrowserRouter>
                 <React.Fragment>
@@ -23,4 +24,8 @@ class App extends Component{
     }
 }
 
-export default connect(null, {fetchUser})(App);
+const mapStateToProps = ({ auth }) => {
+    return { auth }
+}
+
+export default connect(mapStateToProps, {fetchUser})(App);
