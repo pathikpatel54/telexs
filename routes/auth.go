@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"telexs/config"
 	"telexs/models"
 
@@ -63,7 +64,7 @@ func (ac AuthController) Index(w http.ResponseWriter, r *http.Request, _ httprou
 	</body>
 	</html>`
 
-	logged, user, _ := isLoggedIn(r, ac)
+	logged, user := isLoggedIn(r, ac)
 
 	if logged {
 		w.Header().Set("Content-Type", "application/json")
@@ -97,6 +98,33 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 	generateSession(content, w, r, ac)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+//Logout route to log user out.
+func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	logged, user := isLoggedIn(r, ac)
+	if !logged {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	result, err := ac.client.Database("db").Collection("sessions").DeleteMany(ac.ctx, bson.M{"email": user.Email})
+
+	if err != nil {
+		log.Println("Error Deleting session")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Println(result.DeletedCount)
+	http.SetCookie(w, &http.Cookie{
+		Name:   "session",
+		MaxAge: -1,
+		Path:   "/",
+	})
+
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, strconv.Itoa(int(result.DeletedCount))+"Sessions has been deleted")
 }
 
 func getUserInfo(state string, code string) ([]byte, error) {
@@ -153,7 +181,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 
 }
 
-func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User, models.Session) {
+func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 	cookie, err := r.Cookie("session")
 
 	if err != nil {
@@ -178,18 +206,5 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User, models.S
 		return false, models.User{}
 	}
 
-	return true, user, session
-}
-
-func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	logged, user := isLoggedIn(r, ac)
-	if logged {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	var session models.Session
-
-	err := ac.client.Database("db").Collection("sessions").DeleteOne(ac.ctx, bson.M{"sessionid": })
-
+	return true, user
 }
