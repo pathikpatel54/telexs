@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"telexs/routes"
 
@@ -19,9 +20,14 @@ func main() {
 	router.GET("/", ac.Index)
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
+	router.GET("/api/user", ac.User)
 	router.GET("/api/logout", ac.Logout)
 
-	http.ListenAndServe(":8080", router)
+	err := http.ListenAndServe(":8080", router)
+
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func getMongoClient() (context.Context, *mongo.Client) {

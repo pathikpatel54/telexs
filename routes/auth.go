@@ -13,12 +13,11 @@ import (
 	"telexs/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	"github.com/julienschmidt/httprouter"
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -65,16 +64,30 @@ func (ac AuthController) Index(w http.ResponseWriter, r *http.Request, _ httprou
 	</body>
 	</html>`
 
-	logged, user := isLoggedIn(r, ac)
+	logged, _ := isLoggedIn(w, r, ac)
 
 	if logged {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(user)
+		io.WriteString(w, `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Document</title>
+		</head>
+		<body>
+			You are Signed In <br/>
+			<a href="/api/user">
+				View User
+			</a><br/>
+			<a href="/api/logout">
+				Log-out
+			</a>
+		</body>
+		</html>`)
 		return
 	}
 
 	io.WriteString(w, resp)
-
 }
 
 //Login route to catch /auth/google
@@ -100,9 +113,21 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+//User route to fetch User information in JSON
+func (ac AuthController) User(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	logged, user := isLoggedIn(w, r, ac)
+
+	if !logged {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	json.NewEncoder(w).Encode(&user)
+}
+
 //Logout route to log user out.
 func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	logged, user := isLoggedIn(r, ac)
+	logged, user := isLoggedIn(w, r, ac)
 	if !logged {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -162,10 +187,12 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 
 	sID := uuid.NewV4()
 	http.SetCookie(w, &http.Cookie{
-		Name:   "session",
-		Value:  sID.String(),
-		MaxAge: 60,
-		Path:   "/",
+		Name:     "session",
+		Value:    sID.String(),
+		MaxAge:   24 * 60 * 60,
+		Path:     "/",
+		SameSite: 3,
+		HttpOnly: true,
 	})
 	t := true
 	ac.client.Database("db").Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, &bson.M{
@@ -182,7 +209,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 
 }
 
-func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
+func isLoggedIn(w http.ResponseWriter, r *http.Request, ac AuthController) (bool, models.User) {
 	cookie, err := r.Cookie("session")
 
 	if err != nil {
@@ -197,6 +224,16 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 
 	if err1 != nil {
 		log.Println("Error retreiving Session")
+		return false, models.User{}
+	}
+
+	if time.Now().After(session.Expires) {
+		http.SetCookie(w, &http.Cookie{
+			Name:   "session",
+			Path:   "/",
+			MaxAge: -1,
+		})
+		ac.client.Database("db").Collection("sessions").DeleteMany(ac.ctx, bson.M{"email": user.Email})
 		return false, models.User{}
 	}
 
