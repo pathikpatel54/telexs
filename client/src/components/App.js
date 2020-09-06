@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { fetchUser } from "../actions";
 
 import Header from "./Header";
-import Index from "./Index";
+import Landing from "./Landing";
 
 class App extends Component{
     componentDidMount() {
@@ -17,7 +17,7 @@ class App extends Component{
             <BrowserRouter>
                 <React.Fragment>
                     <Header />
-                    <Route exact path="/" component={Index} />
+                    <Route exact path="/" component={Landing} />
                 </React.Fragment>
             </BrowserRouter>
         )

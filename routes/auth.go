@@ -40,7 +40,7 @@ var (
 
 func init() {
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:5000/auth/google/callback",
+		RedirectURL:  "http://localhost:3000/auth/google/callback",
 		ClientID:     config.Keys.GoogleClientID,
 		ClientSecret: config.Keys.GoogleClientSecret,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
@@ -153,9 +153,9 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    sID.String(),
-		MaxAge:   24 * 60 * 60,
+		MaxAge:   30 * 24 * 60 * 60,
+		SameSite: 2,
 		Path:     "/",
-		SameSite: 3,
 		HttpOnly: true,
 	})
 	t := true
@@ -167,7 +167,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		"$set": &models.Session{
 			Email:     user.Email,
 			SessionID: sID.String(),
-			Expires:   time.Now().Add(time.Second * 60),
+			Expires:   time.Now().Add(time.Second * 24 * 60 * 60),
 		},
 	}, &options.UpdateOptions{Upsert: &t})
 
