@@ -165,7 +165,7 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 	var user models.User
 	var session models.Session
 
-	err1 := ac.client.Database("db").Collection("session").FindOne(ac.ctx, bson.M{"sessionid": cookie.Value}).Decode(&session)
+	err1 := ac.client.Database("db").Collection("sessions").FindOne(ac.ctx, bson.M{"sessionid": cookie.Value}).Decode(&session)
 
 	fmt.Println(session)
 	if err1 != nil {
@@ -173,7 +173,7 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 		return false, models.User{}
 	}
 
-	err2 := ac.client.Database("db").Collection("session").FindOne(ac.ctx, bson.M{"email": session.Email}).Decode(&user)
+	err2 := ac.client.Database("db").Collection("users").FindOne(ac.ctx, bson.M{"email": session.Email}).Decode(&user)
 
 	if err2 != nil {
 		log.Println("Error retreiving User")
