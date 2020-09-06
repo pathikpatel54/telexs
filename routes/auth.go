@@ -63,7 +63,7 @@ func (ac AuthController) Index(w http.ResponseWriter, r *http.Request, _ httprou
 	</body>
 	</html>`
 
-	logged, user := isLoggedIn(r, ac)
+	logged, user, _ := isLoggedIn(r, ac)
 
 	if logged {
 		w.Header().Set("Content-Type", "application/json")
@@ -153,7 +153,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 
 }
 
-func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
+func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User, models.Session) {
 	cookie, err := r.Cookie("session")
 
 	if err != nil {
@@ -178,5 +178,18 @@ func isLoggedIn(r *http.Request, ac AuthController) (bool, models.User) {
 		return false, models.User{}
 	}
 
-	return true, user
+	return true, user, session
+}
+
+func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	logged, user := isLoggedIn(r, ac)
+	if logged {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	var session models.Session
+
+	err := ac.client.Database("db").Collection("sessions").DeleteOne(ac.ctx, bson.M{"sessionid": })
+
 }

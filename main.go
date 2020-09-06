@@ -19,6 +19,7 @@ func main() {
 	router.GET("/", ac.Index)
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
+	router.GET("/api/logout", ac.Logout)
 
 	http.ListenAndServe(":8080", router)
 }
