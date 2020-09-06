@@ -20,7 +20,7 @@ func main() {
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
 
-	http.ListenAndServe(":80", router)
+	http.ListenAndServe(":8080", router)
 }
 
 func getMongoClient() (context.Context, *mongo.Client) {
