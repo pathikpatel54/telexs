@@ -17,7 +17,6 @@ func main() {
 
 	ac := routes.NewAuthController(getMongoClient())
 
-	router.GET("/", ac.Index)
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
 	router.GET("/api/user", ac.User)

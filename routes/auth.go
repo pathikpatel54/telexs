@@ -48,50 +48,14 @@ func init() {
 	}
 }
 
-//Index route
-func (ac AuthController) Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	resp := `<!DOCTYPE html>
-	<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Document</title>
-	</head>
-	<body>
-		<a href="/auth/google">
-		Sign-in with Google
-		</a>
-	</body>
-	</html>`
-
+//Login route to catch /auth/google
+func (ac AuthController) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	logged, _ := isLoggedIn(w, r, ac)
 
 	if logged {
-		io.WriteString(w, `<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Document</title>
-		</head>
-		<body>
-			You are Signed In <br/>
-			<a href="/api/user">
-				View User
-			</a><br/>
-			<a href="/api/logout">
-				Log-out
-			</a>
-		</body>
-		</html>`)
-		return
+		http.Redirect(w, r, "/api/user", http.StatusSeeOther)
 	}
 
-	io.WriteString(w, resp)
-}
-
-//Login route to catch /auth/google
-func (ac AuthController) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	oauthstate = "pseudoerandomnum"
 
 	url := googleOauthConfig.AuthCodeURL(oauthstate)
@@ -110,7 +74,7 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	generateSession(content, w, r, ac)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/api/user", http.StatusSeeOther)
 }
 
 //User route to fetch User information in JSON
@@ -121,7 +85,7 @@ func (ac AuthController) User(w http.ResponseWriter, r *http.Request, _ httprout
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&user)
 }
 
