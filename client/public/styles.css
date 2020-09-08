@@ -1,0 +1,7 @@
+*{
+    border-radius: 0.1em !important;
+}
+.navbar-brand {
+    padding: 18px 20px;
+     display: inline-block;
+ }

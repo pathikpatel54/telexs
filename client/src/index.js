@@ -7,6 +7,8 @@ import ReduxThunk from "redux-thunk";
 import App from "./components/App";
 import reducers from "./reducers"
 
+import 'rsuite/dist/styles/rsuite-dark.css'
+
 const store = createStore(reducers, applyMiddleware(ReduxThunk));
 
 ReactDOM.render(

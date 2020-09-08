@@ -12,11 +12,10 @@ class App extends Component{
     }
 
     render() {
-        console.log(this.props.auth)
         return (
             <BrowserRouter>
                 <React.Fragment>
-                    <Header />
+                    <Header auth={this.props.auth}/>
                     <Route exact path="/" component={Landing} />
                 </React.Fragment>
             </BrowserRouter>

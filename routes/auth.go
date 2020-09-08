@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"telexs/config"
 	"telexs/models"
 	"time"
@@ -74,7 +72,7 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	generateSession(content, w, r, ac)
-	http.Redirect(w, r, "/api/user", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 //User route to fetch User information in JSON
@@ -112,8 +110,7 @@ func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httpro
 		Path:   "/",
 	})
 
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, strconv.Itoa(int(result.DeletedCount))+" Sessions has been deleted")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func getUserInfo(state string, code string) ([]byte, error) {
