@@ -7,7 +7,7 @@ const Header = (props) => {
     return (
       <Navbar appearance="default">
       <Navbar.Header>
-        <a href="#" className="navbar-brand logo">RSUITE</a>
+        <a href="#" className="navbar-brand logo">TELEXS</a>
       </Navbar.Header>
       <Navbar.Body>
         <ResponsiveNav>

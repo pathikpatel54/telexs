@@ -155,6 +155,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		Path:     "/",
 		HttpOnly: true,
 	})
+	user.Devices = []string{}
 	t := true
 	ac.client.Database("db").Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, &bson.M{
 		"$set": &user,
