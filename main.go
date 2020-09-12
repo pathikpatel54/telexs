@@ -16,11 +16,15 @@ func main() {
 	router := httprouter.New()
 
 	ac := routes.NewAuthController(getMongoClient())
+	dc := routes.NewDeviceController(getMongoClient())
 
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
 	router.GET("/api/user", ac.User)
 	router.GET("/api/logout", ac.Logout)
+
+	router.GET("/api/devices", dc.GetDevices)
+	router.POST("/api/devices", dc.AddDevice)
 
 	err := http.ListenAndServe(":5000", router)
 
@@ -29,7 +33,7 @@ func main() {
 	}
 }
 
-func getMongoClient() (context.Context, *mongo.Client) {
+func getMongoClient() (context.Context, *mongo.Database) {
 	ctx := context.TODO()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
 		"mongodb://pathik:"+config.Keys.MongodbUser+
@@ -40,5 +44,6 @@ func getMongoClient() (context.Context, *mongo.Client) {
 		panic(err)
 	}
 
-	return ctx, client
+	db := client.Database("db")
+	return ctx, db
 }

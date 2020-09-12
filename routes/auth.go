@@ -14,6 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/oauth2"
@@ -22,13 +23,13 @@ import (
 
 //AuthController struct
 type AuthController struct {
-	client *mongo.Client
-	ctx    context.Context
+	db  *mongo.Database
+	ctx context.Context
 }
 
 //NewAuthController Generates Authcontroller struct
-func NewAuthController(ctx context.Context, c *mongo.Client) AuthController {
-	return AuthController{client: c, ctx: ctx}
+func NewAuthController(ctx context.Context, db *mongo.Database) AuthController {
+	return AuthController{db, ctx}
 }
 
 var (
@@ -48,7 +49,7 @@ func init() {
 
 //Login route to catch /auth/google
 func (ac AuthController) Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	logged, _ := isLoggedIn(w, r, ac)
+	logged, _ := isLoggedIn(w, r, ac.db)
 
 	if logged {
 		http.Redirect(w, r, "/api/user", http.StatusSeeOther)
@@ -77,7 +78,7 @@ func (ac AuthController) Callback(w http.ResponseWriter, r *http.Request, _ http
 
 //User route to fetch User information in JSON
 func (ac AuthController) User(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	logged, user := isLoggedIn(w, r, ac)
+	logged, user := isLoggedIn(w, r, ac.db)
 
 	if !logged {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -89,13 +90,13 @@ func (ac AuthController) User(w http.ResponseWriter, r *http.Request, _ httprout
 
 //Logout route to log user out.
 func (ac AuthController) Logout(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	logged, user := isLoggedIn(w, r, ac)
+	logged, user := isLoggedIn(w, r, ac.db)
 	if !logged {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	result, err := ac.client.Database("db").Collection("sessions").DeleteMany(ac.ctx, bson.M{"email": user.Email})
+	result, err := ac.db.Collection("sessions").DeleteMany(ac.ctx, bson.M{"email": user.Email})
 
 	if err != nil {
 		log.Println("Error Deleting session")
@@ -155,14 +156,16 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		Path:     "/",
 		HttpOnly: true,
 	})
-	user.Devices = []string{}
+	user.ID = primitive.NewObjectIDFromTimestamp(time.Now())
+	user.Devices = []models.DBRef{}
 	t := true
-	ac.client.Database("db").Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, &bson.M{
+	ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
 		"$set": &user,
 	}, &options.UpdateOptions{Upsert: &t})
 
-	ac.client.Database("db").Collection("sessions").UpdateOne(ac.ctx, bson.M{"email": user.Email}, &bson.M{
+	ac.db.Collection("sessions").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
 		"$set": &models.Session{
+			ID:        primitive.NewObjectIDFromTimestamp(time.Now()),
 			Email:     user.Email,
 			SessionID: sID.String(),
 			Expires:   time.Now().Add(time.Second * 24 * 60 * 60),
@@ -171,7 +174,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 
 }
 
-func isLoggedIn(w http.ResponseWriter, r *http.Request, ac AuthController) (bool, models.User) {
+func isLoggedIn(w http.ResponseWriter, r *http.Request, db *mongo.Database) (bool, models.User) {
 	cookie, err := r.Cookie("session")
 
 	if err != nil {
@@ -182,7 +185,7 @@ func isLoggedIn(w http.ResponseWriter, r *http.Request, ac AuthController) (bool
 	var user models.User
 	var session models.Session
 
-	err1 := ac.client.Database("db").Collection("sessions").FindOne(ac.ctx, bson.M{"sessionid": cookie.Value}).Decode(&session)
+	err1 := db.Collection("sessions").FindOne(context.TODO(), bson.M{"sessionid": cookie.Value}).Decode(&session)
 
 	if err1 != nil {
 		log.Println("Error retreiving Session")
@@ -195,11 +198,11 @@ func isLoggedIn(w http.ResponseWriter, r *http.Request, ac AuthController) (bool
 			Path:   "/",
 			MaxAge: -1,
 		})
-		ac.client.Database("db").Collection("sessions").DeleteMany(ac.ctx, bson.M{"email": user.Email})
+		db.Collection("sessions").DeleteMany(context.TODO(), bson.M{"email": user.Email})
 		return false, models.User{}
 	}
 
-	err2 := ac.client.Database("db").Collection("users").FindOne(ac.ctx, bson.M{"email": session.Email}).Decode(&user)
+	err2 := db.Collection("users").FindOne(context.TODO(), bson.M{"email": session.Email}).Decode(&user)
 
 	if err2 != nil {
 		log.Println("Error retreiving User")
