@@ -16,7 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -157,19 +156,25 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		HttpOnly: true,
 	})
 	user.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-	t := true
-	ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
-		"$set": &user,
-	}, &options.UpdateOptions{Upsert: &t})
 
-	ac.db.Collection("sessions").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
-		"$set": &models.Session{
-			ID:        primitive.NewObjectIDFromTimestamp(time.Now()),
-			Email:     user.Email,
-			SessionID: sID.String(),
-			Expires:   time.Now().Add(time.Second * 24 * 60 * 60),
+	_, err := ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"googleid": user.GoogleID}, bson.M{
+		"$setOnInsert": user,
+	})
+
+	if err != nil {
+		log.Printf("%s", err)
+	}
+
+	_, err1 := ac.db.Collection("sessions").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
+		"$set": bson.M{
+			"sessionid": sID.String(),
+			"expires":   time.Now().Add(time.Second * 24 * 60 * 60),
 		},
-	}, &options.UpdateOptions{Upsert: &t})
+	})
+
+	if err1 != nil {
+		log.Printf("%s", err1)
+	}
 
 }
 
