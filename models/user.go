@@ -13,5 +13,5 @@ type User struct {
 	FamilyName    string             `json:"family_name"`
 	Picture       string             `json:"picture"`
 	Locale        string             `json:"locale"`
-	Devices       []DBRef            `json:"devices"`
+	Devices       []interface{}      `json:"devices"`
 }

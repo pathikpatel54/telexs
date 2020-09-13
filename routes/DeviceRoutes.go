@@ -47,7 +47,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		log.Panic(err)
 	}
 
-	user.Devices = append(user.Devices, models.DBRef{Ref: "devices", ID: result.InsertedID, DB: "db"})
+	user.Devices = append(user.Devices, result.InsertedID)
 
 	result1, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$set": &user})
 
@@ -58,6 +58,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	fmt.Println(result1.UpsertedID)
 }
 
+//GetDevices route
 func (dc DeviceController) GetDevices(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	logged, user := isLoggedIn(w, r, dc.db)
@@ -67,5 +68,21 @@ func (dc DeviceController) GetDevices(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	cur, err := dc.db.Collection("devices").Find(dc.ctx, bson.M{"$in": user.Devices})
+	cur, err := dc.db.Collection("devices").Find(dc.ctx, bson.M{"_id": bson.M{"$in": user.Devices}})
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	var devices = []models.Device{}
+
+	for cur.Next(dc.ctx) {
+		var device = models.Device{}
+		cur.Decode(&device)
+
+		devices = append(devices, device)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(&devices)
 }

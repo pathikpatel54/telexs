@@ -157,7 +157,6 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		HttpOnly: true,
 	})
 	user.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-	user.Devices = []models.DBRef{}
 	t := true
 	ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"email": user.Email}, bson.M{
 		"$set": &user,
