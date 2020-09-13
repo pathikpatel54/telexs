@@ -25,6 +25,8 @@ func main() {
 
 	router.GET("/api/devices", dc.GetDevices)
 	router.POST("/api/devices", dc.AddDevice)
+	router.PUT("/api/device/:id", dc.ModifyDevice)
+	router.DELETE("/api/device/:id", dc.DeleteDevice)
 
 	err := http.ListenAndServe(":5000", router)
 

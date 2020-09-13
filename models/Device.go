@@ -8,7 +8,7 @@ import (
 
 //Device model
 type Device struct {
-	ID        primitive.ObjectID `json:"objectID" bson:"_id"`
+	ID        primitive.ObjectID `json:"objectID" bson:"_id,omitempty"`
 	HostName  string             `json:"hostName"`
 	IPAddress string             `json:"ipAddress"`
 	Type      string             `json:"type"`

@@ -11,6 +11,8 @@ import (
 	"telexs/models"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"github.com/julienschmidt/httprouter"
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -156,10 +158,10 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		HttpOnly: true,
 	})
 	user.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-
+	t := true
 	_, err := ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"googleid": user.GoogleID}, bson.M{
 		"$setOnInsert": user,
-	})
+	}, &options.UpdateOptions{Upsert: &t})
 
 	if err != nil {
 		log.Printf("%s", err)
@@ -170,7 +172,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 			"sessionid": sID.String(),
 			"expires":   time.Now().Add(time.Second * 24 * 60 * 60),
 		},
-	})
+	}, &options.UpdateOptions{Upsert: &t})
 
 	if err1 != nil {
 		log.Printf("%s", err1)
