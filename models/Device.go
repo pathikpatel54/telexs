@@ -1,13 +1,20 @@
 package models
 
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
 //Device model
 type Device struct {
-	HostName  string `json:"hostName"`
-	IPAddress string `json:"ipAddress"`
-	Type      string `json:"type"`
-	Vendor    string `json:"vendor"`
-	Model     string `json:"model"`
-	Version   string `json:"version"`
-	EOL       string `json:"EOL"`
-	EOS       string `json:"EOS"`
+	ID        primitive.ObjectID `json:"objectID" bson:"_id"`
+	HostName  string             `json:"hostName"`
+	IPAddress string             `json:"ipAddress"`
+	Type      string             `json:"type"`
+	Vendor    string             `json:"vendor"`
+	Model     string             `json:"model"`
+	Version   string             `json:"version"`
+	EOL       time.Time          `json:"eol"`
+	EOS       time.Time          `json:"eos"`
 }

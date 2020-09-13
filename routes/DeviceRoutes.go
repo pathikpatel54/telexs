@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"telexs/models"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -34,6 +36,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	}
 
 	var NewDevice models.Device
+	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 
 	err := json.NewDecoder(r.Body).Decode(&NewDevice)
 
