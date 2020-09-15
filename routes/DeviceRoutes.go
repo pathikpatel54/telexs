@@ -3,11 +3,12 @@ package routes
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"telexs/models"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +36,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		return
 	}
 
-	var NewDevice models.Device
+	var NewDevice, AddedDevice models.Device
 	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 
 	err := json.NewDecoder(r.Body).Decode(&NewDevice)
@@ -44,21 +45,25 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		log.Panic(err)
 	}
 
-	result, err := dc.db.Collection("devices").InsertOne(dc.ctx, &NewDevice)
+	t := true
+
+	result := dc.db.Collection("devices").FindOneAndUpdate(dc.ctx, bson.M{"ipaddress": NewDevice.IPAddress}, bson.M{
+		"$setOnInsert": NewDevice,
+	}, &options.FindOneAndUpdateOptions{Upsert: &t})
 
 	if err != nil {
 		log.Panic(err)
 	}
 
-	user.Devices = append(user.Devices, result.InsertedID)
+	result.Decode(&AddedDevice)
 
-	result1, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$set": &user})
+	user.Devices = append(user.Devices, AddedDevice.ID)
 
-	if err != nil {
+	_, err1 := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$set": &user})
+
+	if err1 != nil {
 		log.Panic(err)
 	}
-
-	fmt.Println(result1.UpsertedID)
 }
 
 //GetDevices route
@@ -136,6 +141,7 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 	ID, err := primitive.ObjectIDFromHex(p.ByName("id"))
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%s", err)
 		return
 	}
@@ -143,6 +149,7 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 	DeleteResult, err := dc.db.Collection("devices").DeleteOne(dc.ctx, bson.M{"_id": ID})
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%s", err)
 		return
 	}
@@ -152,6 +159,7 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 	})
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%s", err)
 		return
 	}
@@ -161,5 +169,5 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	w.WriteHeader(http.StatusUnauthorized)
+	w.WriteHeader(http.StatusBadRequest)
 }
