@@ -37,7 +37,7 @@ const NavToggle = ({ expand, onChange, auth }) => {
           </Dropdown>
           : auth.loading ? <Loader />: 
           <Nav.Item>
-            <a href="/auth/google"><Icon icon='google-plus' /></a>
+            <a href="/auth/google">{expand ? 'Sign In with Google' : <Icon style={{ marginLeft: '5px'}} icon='google' />}</a>
           </Nav.Item>
           }
           
