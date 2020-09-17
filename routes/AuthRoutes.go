@@ -53,7 +53,8 @@ func (ac AuthController) Login(w http.ResponseWriter, r *http.Request, _ httprou
 	logged, _ := isLoggedIn(w, r, ac.db)
 
 	if logged {
-		http.Redirect(w, r, "/api/user", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	oauthstate = "pseudoerandomnum"

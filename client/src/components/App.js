@@ -2,8 +2,9 @@ import React, { Component } from "react";
 import { BrowserRouter, Route } from "react-router-dom";
 import { connect } from "react-redux";
 import { fetchUser } from "../actions";
+import { Container } from 'rsuite'
 
-import Header from "./Header";
+import Head from "./Header";
 import Landing from "./Landing";
 
 class App extends Component{
@@ -13,12 +14,16 @@ class App extends Component{
 
     render() {
         return (
-            <BrowserRouter>
-                <React.Fragment>
-                    <Header auth={this.props.auth}/>
-                    <Route exact path="/" component={Landing} />
-                </React.Fragment>
-            </BrowserRouter>
+            <div className="show-fake-browser sidebar-page">
+                <Container>
+                    <Head auth={this.props.auth}/>
+                    <BrowserRouter>
+                        <React.Fragment>
+                            <Route exact path="/" component={Landing} />
+                        </React.Fragment>
+                    </BrowserRouter>
+                </Container>
+            </div>
         )
     }
 }

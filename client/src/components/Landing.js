@@ -1,21 +1,14 @@
 import React from "react";
+import { Container, Header, Content } from 'rsuite';
 
 const Landing = () => {
     return (
-        <div>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-            <h1>Landing</h1>
-        </div>
+        <Container>
+            <Header style={{ marginLeft: '2em'}}>
+              <h2 >Dashboard</h2>
+            </Header>
+            <Content style={{ marginLeft: '2em'}}>Content</Content>
+        </Container>
     )
 }
 
