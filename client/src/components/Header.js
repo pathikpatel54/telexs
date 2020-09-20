@@ -35,10 +35,10 @@ const NavToggle = ({ expand, onChange, auth }) => {
             <Dropdown.Item>Settings</Dropdown.Item>
             <Dropdown.Item><a href='/api/logout'>Sign Out</a></Dropdown.Item>
           </Dropdown>
-          : auth.loading ? <Loader />: 
-          <Nav.Item>
-            <a href="/auth/google">{expand ? 'Sign In with Google' : <Icon style={{ marginLeft: '5px'}} icon='google' />}</a>
-          </Nav.Item>
+          : auth.loading ? <Loader /> : 
+          expand ? <Nav.Item hasTooltip>
+            <a href="/auth/google">Sign In with Google</a>
+          </Nav.Item> : <a href='/auth/google'><Icon style={iconStyles} icon="google" /></a>
           }
           
           
@@ -55,17 +55,24 @@ const NavToggle = ({ expand, onChange, auth }) => {
 
 class Head extends Component {
   state = {
-      expand: true
+      expand: false,
+      active: 1
   }
 
-  handleToggle= () => {
+  handleToggle = () => {
     this.setState({
       expand: !this.state.expand
     });
   }
+
+  handleSelect = (active) => {
+    this.setState({
+      active
+    })
+  }
   
   render() {
-    const { expand } = this.state;
+    const { expand, active } = this.state;
     console.log(this.props.auth)
     return (
       <React.Fragment>
@@ -77,7 +84,7 @@ class Head extends Component {
             <Sidenav.Header>
               <div style={headerStyles}>
                 <Icon icon="logo-analytics" size="lg" style={{ verticalAlign: 0 }} />
-                <span style={{ marginLeft: 12 }}> Telexs</span>
+                <span style={{ marginLeft: 15 }}> Telexs</span>
               </div>
             </Sidenav.Header>
             <Sidenav
@@ -88,10 +95,10 @@ class Head extends Component {
             >
               <Sidenav.Body>
                 <Nav>
-                  <Nav.Item eventKey="1" active icon={<Icon icon="dashboard" />}>
+                  <Nav.Item onClick={() => this.handleSelect(1)} eventKey="1" active={active === 1 ? true : false} icon={<Icon icon="dashboard" />}>
                     Dashboard
                   </Nav.Item>
-                  <Nav.Item eventKey="2" icon={<Icon icon="group" />}>
+                  <Nav.Item onClick={() => this.handleSelect(2)} eventKey="2" active={active === 2 ? true : false} icon={<Icon icon="group" />}>
                     User Group
                   </Nav.Item>
                   <Dropdown
@@ -100,12 +107,13 @@ class Head extends Component {
                     title="Advanced"
                     icon={<Icon icon="magic" />}
                     placement="rightStart"
+                    
                   >
-                    <Dropdown.Item eventKey="3-1">Geo</Dropdown.Item>
-                    <Dropdown.Item eventKey="3-2">Devices</Dropdown.Item>
-                    <Dropdown.Item eventKey="3-3">Brand</Dropdown.Item>
-                    <Dropdown.Item eventKey="3-4">Loyalty</Dropdown.Item>
-                    <Dropdown.Item eventKey="3-5">Visit Depth</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(31)} active={active === 31 ? true : false} eventKey="3-1">Geo</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(32)} active={active === 32 ? true : false} eventKey="3-2">Devices</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(33)} active={active === 33 ? true : false} eventKey="3-3">Brand</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(34)} active={active === 34 ? true : false} eventKey="3-4">Loyalty</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(35)} active={active === 35 ? true : false} eventKey="3-5">Visit Depth</Dropdown.Item>
                   </Dropdown>
                   <Dropdown
                     eventKey="4"
@@ -113,12 +121,13 @@ class Head extends Component {
                     title="Settings"
                     icon={<Icon icon="gear-circle" />}
                     placement="rightStart"
+                    active={active === 4 ? true : false}
                   >
-                    <Dropdown.Item eventKey="4-1">Applications</Dropdown.Item>
-                    <Dropdown.Item eventKey="4-2">Websites</Dropdown.Item>
-                    <Dropdown.Item eventKey="4-3">Channels</Dropdown.Item>
-                    <Dropdown.Item eventKey="4-4">Tags</Dropdown.Item>
-                    <Dropdown.Item eventKey="4-5">Versions</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(41)} active={active === 41 ? true : false} eventKey="4-1">Applications</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(42)} active={active === 42 ? true : false} eventKey="4-2">Websites</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(43)} active={active === 43 ? true : false} eventKey="4-3">Channels</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(44)} active={active === 44 ? true : false} eventKey="4-4">Tags</Dropdown.Item>
+                    <Dropdown.Item onSelect={() => this.handleSelect(45)} active={active === 45 ? true : false} eventKey="4-5">Versions</Dropdown.Item>
                   </Dropdown>
                 </Nav>
               </Sidenav.Body>

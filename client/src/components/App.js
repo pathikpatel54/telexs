@@ -6,6 +6,7 @@ import { Container } from 'rsuite'
 
 import Head from "./Header";
 import Landing from "./Landing";
+import Devices from "./Devices";
 
 class App extends Component{
     componentDidMount() {
@@ -16,10 +17,11 @@ class App extends Component{
         return (
             <div className="show-fake-browser sidebar-page">
                 <Container>
-                    <Head auth={this.props.auth}/>
                     <BrowserRouter>
                         <React.Fragment>
+                            <Head auth={this.props.auth}/>
                             <Route exact path="/" component={Landing} />
+                            <Route exact path="/Devices" component={Devices} />
                         </React.Fragment>
                     </BrowserRouter>
                 </Container>
