@@ -51,18 +51,26 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		"$setOnInsert": NewDevice,
 	}, &options.FindOneAndUpdateOptions{Upsert: &t})
 
-	if err != nil {
-		log.Panic(err)
-	}
-
 	result.Decode(&AddedDevice)
 
-	user.Devices = append(user.Devices, AddedDevice.ID)
+	if AddedDevice.ID == primitive.NilObjectID {
+		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
+			"devices": NewDevice.ID,
+		},
+		})
 
-	_, err1 := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$set": &user})
+		if err != nil {
+			log.Panic(err)
+		}
+	} else {
+		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
+			"devices": AddedDevice.ID,
+		},
+		})
 
-	if err1 != nil {
-		log.Panic(err)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 }
 

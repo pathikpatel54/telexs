@@ -36,7 +36,7 @@ const NavToggle = ({ expand, onChange, auth }) => {
             <Dropdown.Item><a href='/api/logout'>Sign Out</a></Dropdown.Item>
           </Dropdown>
           : auth.loading ? <Loader /> : 
-          expand ? <Nav.Item hasTooltip>
+          expand ? <Nav.Item>
             <a href="/auth/google">Sign In with Google</a>
           </Nav.Item> : <a href='/auth/google'><Icon style={iconStyles} icon="google" /></a>
           }
