@@ -70,21 +70,19 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 			switch event.EventName {
 
 			case "subscribe":
-				sockets[cookie.Value] = socket
-
 				for _, val := range user.Devices {
-					devices[val.(primitive.ObjectID).Hex()]++
+					if _, ok := sockets[cookie.Value]; !ok {
+						devices[val.(primitive.ObjectID).Hex()]++
+					}
 				}
+
+				sockets[cookie.Value] = socket
 
 				socket.Emit("You have subscribed", header)
 				fmt.Println(sockets)
 				fmt.Println(devices)
 
 			case "unsubscribe":
-				if _, ok := sockets[cookie.Value]; ok {
-					delete(sockets, cookie.Value)
-				}
-
 				for _, val := range user.Devices {
 					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
 						fmt.Println("Code GOt here")
@@ -93,6 +91,10 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 							delete(devices, val.(primitive.ObjectID).Hex())
 						}
 					}
+				}
+
+				if _, ok := sockets[cookie.Value]; ok {
+					delete(sockets, cookie.Value)
 				}
 
 				socket.Emit("You have unsubscribed", header)
