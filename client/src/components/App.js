@@ -21,7 +21,7 @@ class App extends Component{
                         <React.Fragment>
                             <Head auth={this.props.auth}/>
                             <Route exact path="/" component={Landing} />
-                            <Route exact path="/Devices" component={Devices} />
+                            <Route exact path="/devices" component={Devices} />
                         </React.Fragment>
                     </BrowserRouter>
                 </Container>

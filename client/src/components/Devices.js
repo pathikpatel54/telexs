@@ -11,24 +11,30 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
     const speaker = (
       <Popover title="Description">
         <p>
-          <b>Name:</b> {`${rowData.firstName} ${rowData.lastName}`}{' '}
+          <b>Hostname:</b> {`${rowData.hostName}`}{' '}
         </p>
         <p>
-          <b>Email:</b> {rowData.email}{' '}
+          <b>IPAddress:</b> {rowData.ipAddress}{' '}
         </p>
         <p>
-          <b>Company:</b> {rowData.companyName}{' '}
+          <b>Type:</b> {rowData.type}{' '}
         </p>
         <p>
-          <b>Sentence:</b> {rowData.sentence}{' '}
+          <b>Vendor:</b> {rowData.vendor}{' '}
+        </p>
+        <p>
+          <b>Model:</b> {rowData.model}{' '}
+        </p>
+        <p>
+          <b>Version:</b> {rowData.version}{' '}
         </p>
       </Popover>
     );
   
     return (
       <Cell {...props}>
-        <Whisper placement="top" speaker={speaker}>
-          <a>{rowData[dataKey].toLocaleString()}</a>
+        <Whisper placement="bottom" speaker={speaker}>
+          <div>{rowData[dataKey].toLocaleString()}</div>
         </Whisper>
       </Cell>
     );
@@ -137,13 +143,13 @@ class CustomColumnTable extends React.Component {
       super(props);
       this.state = {
         checkedKeys: [],
-        data
+        data: this.props.data
       };
       this.handleCheckAll = this.handleCheckAll.bind(this);
       this.handleCheck = this.handleCheck.bind(this);
     }
     handleCheckAll(value, checked) {
-      const checkedKeys = checked ? data.map(item => item.id) : [];
+      const checkedKeys = checked ? this.props.data.map(item => item.objectID) : [];
       this.setState({
         checkedKeys
       });
@@ -194,33 +200,45 @@ class CustomColumnTable extends React.Component {
                 </div>
               </HeaderCell>
               <CheckCell
-                dataKey="id"
+                dataKey="objectID"
                 checkedKeys={checkedKeys}
                 onChange={this.handleCheck}
               />
             </Column>
-            <Column width={80} align="center">
-              <HeaderCell>Avartar</HeaderCell>
-              <ImageCell dataKey="avartar" />
+
+            <Column width={160} align="center">
+              <HeaderCell>Status</HeaderCell>
+              <NameCell dataKey="ipAddress" />
             </Column>
   
             <Column width={160}>
-              <HeaderCell>First Name</HeaderCell>
-              <NameCell dataKey="firstName" />
+              <HeaderCell>Hostname</HeaderCell>
+              <NameCell dataKey="hostName" />
             </Column>
-  
-            <Column width={300}>
-              <HeaderCell>Email</HeaderCell>
-              <Cell>
-                {rowData => (
-                  <a href={`mailto:${rowData.email}`}>{rowData.email}</a>
-                )}
-              </Cell>
+
+            <Column width={160}>
+              <HeaderCell>Type</HeaderCell>
+              <NameCell dataKey="type" />
+            </Column>
+
+            <Column width={160}>
+              <HeaderCell>Vendor</HeaderCell>
+              <NameCell dataKey="vendor" />
+            </Column>
+
+            <Column width={160}>
+              <HeaderCell>Model</HeaderCell>
+              <NameCell dataKey="model" />
+            </Column>
+
+            <Column width={160}>
+              <HeaderCell>Version</HeaderCell>
+              <NameCell dataKey="version" />
             </Column>
   
             <Column width={200}>
               <HeaderCell>Action</HeaderCell>
-              <ActionCell dataKey="id" />
+              <ActionCell dataKey="objectID" />
             </Column>
           </Table>
         </div>
@@ -240,7 +258,10 @@ class Devices extends Component{
                 <Header style={{ marginLeft: '2em'}}>
                     <h2 >Devices</h2>
                 </Header>
-                <Content style={{ marginLeft: '2em'}}><CustomColumnTable></CustomColumnTable></Content>
+                <Content style={{ marginLeft: '2em'}}>
+                  {this.props.devices.data ? <CustomColumnTable data={this.props.devices.data}></CustomColumnTable> : ''}
+                  
+                </Content>
             </Container>
         );
     }

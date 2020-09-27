@@ -17,6 +17,7 @@ func main() {
 
 	ac := routes.NewAuthController(getMongoClient())
 	dc := routes.NewDeviceController(getMongoClient())
+	sc := routes.NewSocketController(getMongoClient())
 
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
@@ -27,6 +28,8 @@ func main() {
 	router.POST("/api/devices", dc.AddDevice)
 	router.PUT("/api/device/:id", dc.ModifyDevice)
 	router.DELETE("/api/device/:id", dc.DeleteDevice)
+
+	router.GET("/api/socket", sc.CheckDeviceStatus)
 
 	err := http.ListenAndServe(":5000", router)
 
