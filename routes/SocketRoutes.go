@@ -70,25 +70,37 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 			switch event.EventName {
 
 			case "subscribe":
-				sockets[cookie.String()] = socket
+				sockets[cookie.Value] = socket
 
 				for _, val := range user.Devices {
 					devices[val.(primitive.ObjectID).Hex()]++
 				}
 
-				socket.Emit([]byte("You have subscribed"), header)
+				socket.Emit("You have subscribed", header)
+				fmt.Println(sockets)
+				fmt.Println(devices)
 
 			case "unsubscribe":
-				_, ok := sockets[cookie.String()]
-
-				if ok {
-					delete(sockets, cookie.String())
+				if _, ok := sockets[cookie.Value]; ok {
+					delete(sockets, cookie.Value)
 				}
 
-				socket.Emit([]byte("You have unsubscribed"), header)
+				for _, val := range user.Devices {
+					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
+						fmt.Println("Code GOt here")
+						devices[val.(primitive.ObjectID).Hex()]--
+						if devices[val.(primitive.ObjectID).Hex()] <= 0 {
+							delete(devices, val.(primitive.ObjectID).Hex())
+						}
+					}
+				}
+
+				socket.Emit("You have unsubscribed", header)
+				fmt.Println(sockets)
+				fmt.Println(devices)
 
 			default:
-				socket.Emit([]byte("Unrecognized Event"), header)
+				socket.Emit("Unrecognized Event", header)
 
 			}
 
@@ -96,10 +108,8 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 
 				fmt.Println("Close test")
 
-				_, ok := sockets[cookie.String()]
-
-				if ok {
-					delete(sockets, cookie.String())
+				if _, ok := sockets[cookie.Value]; ok {
+					delete(sockets, cookie.Value)
 				}
 
 				return
@@ -140,7 +150,7 @@ func (s socketConn) Emit(payload string, header ws.Header) {
 
 	serverPayload := []byte(payload)
 	serverHeader := header
-	serverHeader.Length = int64(serverPayload))
+	serverHeader.Length = int64(int(len(serverPayload)))
 
 	if err := ws.WriteHeader(s.conn, serverHeader); err != nil {
 		log.Println(err)
