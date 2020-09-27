@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"telexs/models"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/gobwas/ws"
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,7 +21,8 @@ type socketConn struct {
 	conn net.Conn
 }
 
-type sockets map[string]socketConn
+var sockets = map[string]socketConn{}
+var devices = map[string]int{}
 
 //SocketController struct
 type SocketController struct {
@@ -35,7 +38,23 @@ func NewSocketController(ctx context.Context, db *mongo.Database) SocketControll
 //CheckDeviceStatus route
 func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
+	logged, user := isLoggedIn(w, r, sc.db)
+
+	if !logged {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	cookie, err := r.Cookie("session")
+
+	fmt.Println(user, cookie)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -49,16 +68,40 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 			event, header := socket.Read()
 
 			switch event.EventName {
+
 			case "subscribe":
-				socket.Write([]byte("You have subscribed"), header)
+				sockets[cookie.String()] = socket
+
+				for _, val := range user.Devices {
+					devices[val.(primitive.ObjectID).Hex()]++
+				}
+
+				socket.Emit([]byte("You have subscribed"), header)
+
 			case "unsubscribe":
-				socket.Write([]byte("You have unsubscribed"), header)
+				_, ok := sockets[cookie.String()]
+
+				if ok {
+					delete(sockets, cookie.String())
+				}
+
+				socket.Emit([]byte("You have unsubscribed"), header)
+
 			default:
-				socket.Write([]byte("Unrecognized Event"), header)
+				socket.Emit([]byte("Unrecognized Event"), header)
+
 			}
 
 			if header.OpCode == ws.OpClose || header.OpCode == 0 {
+
 				fmt.Println("Close test")
+
+				_, ok := sockets[cookie.String()]
+
+				if ok {
+					delete(sockets, cookie.String())
+				}
+
 				return
 			}
 		}
@@ -93,7 +136,7 @@ func (s socketConn) Read() (models.Event, ws.Header) {
 	return event, header
 }
 
-func (s socketConn) Write(payload []byte, header ws.Header) {
+func (s socketConn) Emit(payload []byte, header ws.Header) {
 
 	serverHeader := header
 	serverHeader.Length = int64(len(payload))
