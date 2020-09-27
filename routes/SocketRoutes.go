@@ -159,4 +159,5 @@ func (s socketConn) Emit(payload string, header ws.Header) {
 	if _, err := s.conn.Write(serverPayload); err != nil {
 		log.Println(err)
 	}
+	gfg
 }
