@@ -136,16 +136,17 @@ func (s socketConn) Read() (models.Event, ws.Header) {
 	return event, header
 }
 
-func (s socketConn) Emit(payload []byte, header ws.Header) {
+func (s socketConn) Emit(payload string, header ws.Header) {
 
+	serverPayload := []byte(payload)
 	serverHeader := header
-	serverHeader.Length = int64(len(payload))
+	serverHeader.Length = int64(serverPayload))
 
 	if err := ws.WriteHeader(s.conn, serverHeader); err != nil {
 		log.Println(err)
 	}
 
-	if _, err := s.conn.Write(payload); err != nil {
+	if _, err := s.conn.Write(serverPayload); err != nil {
 		log.Println(err)
 	}
 }
