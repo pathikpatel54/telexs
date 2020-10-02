@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"telexs/models"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -23,6 +24,7 @@ type socketConn struct {
 
 var sockets = map[string]socketConn{}
 var devices = map[string]int{}
+var validation = map[string]bool{}
 
 //SocketController struct
 type SocketController struct {
@@ -33,6 +35,25 @@ type SocketController struct {
 //NewSocketController returns SocketController
 func NewSocketController(ctx context.Context, db *mongo.Database) SocketController {
 	return SocketController{db, ctx}
+}
+
+//ValidateAndSend returns validator func
+func ValidateAndSend() {
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				for cookie, socket := range sockets {
+					fmt.Println(cookie, socket)
+				}
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
 //CheckDeviceStatus route

@@ -31,6 +31,8 @@ func main() {
 
 	router.GET("/api/socket", sc.CheckDeviceStatus)
 
+	routes.ValidateAndSend()
+
 	err := http.ListenAndServe(":5000", router)
 
 	if err != nil {
