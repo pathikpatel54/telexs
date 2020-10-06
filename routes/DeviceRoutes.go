@@ -3,17 +3,17 @@ package routes
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"telexs/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 //DeviceController struct
@@ -37,9 +37,12 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	}
 
 	var NewDevice, AddedDevice models.Device
-	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 
 	err := json.NewDecoder(r.Body).Decode(&NewDevice)
+
+	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
+
+	fmt.Println(NewDevice)
 
 	if err != nil {
 		log.Panic(err)
@@ -52,6 +55,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	}, &options.FindOneAndUpdateOptions{Upsert: &t})
 
 	result.Decode(&AddedDevice)
+	fmt.Println(AddedDevice)
 
 	if AddedDevice.ID == primitive.NilObjectID {
 		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{

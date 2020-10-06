@@ -11,13 +11,12 @@ import (
 	"telexs/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	"github.com/julienschmidt/httprouter"
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -159,6 +158,7 @@ func generateSession(content []byte, w http.ResponseWriter, r *http.Request, ac 
 		HttpOnly: true,
 	})
 	user.ID = primitive.NewObjectIDFromTimestamp(time.Now())
+	user.Devices = []interface{}{}
 	t := true
 	_, err := ac.db.Collection("users").UpdateOne(ac.ctx, bson.M{"googleid": user.GoogleID}, bson.M{
 		"$setOnInsert": user,

@@ -11,6 +11,7 @@ type Device struct {
 	ID        primitive.ObjectID `json:"objectID" bson:"_id,omitempty"`
 	HostName  string             `json:"hostName"`
 	IPAddress string             `json:"ipAddress"`
+	Port      string             `json:"port"`
 	Type      string             `json:"type"`
 	Vendor    string             `json:"vendor"`
 	Model     string             `json:"model"`

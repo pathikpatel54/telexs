@@ -8,23 +8,29 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 	"telexs/models"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"github.com/gobwas/ws"
 	"github.com/julienschmidt/httprouter"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type socketConn struct {
-	conn net.Conn
+	conn    net.Conn
+	header  ws.Header
+	devices []interface{}
 }
 
-var sockets = map[string]socketConn{}
-var devices = map[string]int{}
-var validation = map[string]bool{}
+var (
+	mu         sync.Mutex
+	sockets    = map[string]socketConn{}
+	devices    = map[string]int{}
+	validation = map[string]bool{}
+)
 
 //SocketController struct
 type SocketController struct {
@@ -37,17 +43,71 @@ func NewSocketController(ctx context.Context, db *mongo.Database) SocketControll
 	return SocketController{db, ctx}
 }
 
-//ValidateAndSend returns validator func
-func ValidateAndSend() {
+//SendSocket returns data to socket after validation
+func (sc SocketController) SendSocket() {
 	ticker := time.NewTicker(1 * time.Second)
 	quit := make(chan struct{})
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				for cookie, socket := range sockets {
-					fmt.Println(cookie, socket)
+				for _, socket := range sockets {
+					var message = map[string]bool{}
+					for _, device := range socket.devices {
+						mu.Lock()
+						message[device.(primitive.ObjectID).Hex()] = validation[device.(primitive.ObjectID).Hex()]
+						mu.Unlock()
+					}
+					emitMessage, err := json.Marshal(message)
+					if err != nil {
+						log.Println(err)
+					}
+					socket.Emit(string(emitMessage), socket.header)
 				}
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
+//ValidateDevice returns data to socket after validation
+func (sc SocketController) ValidateDevice() {
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				for device := range devices {
+					go func(device string) {
+						var resultDevice models.Device
+						ID, err := primitive.ObjectIDFromHex(device)
+
+						if err != nil {
+							log.Println(err)
+						}
+
+						result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
+						result.Decode(&resultDevice)
+
+						if _, err := net.DialTimeout("tcp",
+							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
+							mu.Lock()
+							validation[device] = false
+							fmt.Println(err)
+							mu.Unlock()
+							return
+						}
+
+						mu.Lock()
+						validation[device] = true
+						mu.Unlock()
+						return
+					}(device)
+				}
+
 			case <-quit:
 				ticker.Stop()
 				return
@@ -68,25 +128,25 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 
 	cookie, err := r.Cookie("session")
 
-	fmt.Println(user, cookie)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
-	socket := socketConn{conn}
+	socket := socketConn{conn, ws.Header{}, user.Devices}
 
 	go func() {
 		defer conn.Close()
 
 		for {
 			event, header := socket.Read()
+
+			socket.header = header
 
 			switch event.EventName {
 
@@ -100,8 +160,7 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 				sockets[cookie.Value] = socket
 
 				socket.Emit("You have subscribed", header)
-				fmt.Println(sockets)
-				fmt.Println(devices)
+				fmt.Println(sockets, devices)
 
 			case "unsubscribe":
 				for _, val := range user.Devices {
@@ -119,8 +178,7 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 				}
 
 				socket.Emit("You have unsubscribed", header)
-				fmt.Println(sockets)
-				fmt.Println(devices)
+				fmt.Println(sockets, devices)
 
 			default:
 				socket.Emit("Unrecognized Event", header)
@@ -129,7 +187,7 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 
 			if header.OpCode == ws.OpClose || header.OpCode == 0 {
 
-				fmt.Println("Close test")
+				fmt.Println("Closing socket")
 
 				if _, ok := sockets[cookie.Value]; ok {
 					delete(sockets, cookie.Value)
@@ -145,6 +203,7 @@ func (s socketConn) Read() (models.Event, ws.Header) {
 
 	header, err := ws.ReadHeader(s.conn)
 	if err != nil {
+		log.Println(err)
 		// handle error
 	}
 
@@ -152,6 +211,7 @@ func (s socketConn) Read() (models.Event, ws.Header) {
 	_, err = io.ReadFull(s.conn, payload)
 
 	if err != nil {
+		log.Println(err)
 		// handle error
 	}
 	if header.Masked {
