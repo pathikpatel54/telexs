@@ -17,7 +17,8 @@ func main() {
 
 	ac := routes.NewAuthController(getMongoClient())
 	dc := routes.NewDeviceController(getMongoClient())
-	sc := routes.NewSocketController(getMongoClient())
+	// sc := routes.NewSocketController(getMongoClient())
+	sic := routes.NewSocketIOController(getMongoClient())
 
 	router.GET("/auth/google", ac.Login)
 	router.GET("/auth/google/callback", ac.Callback)
@@ -29,12 +30,17 @@ func main() {
 	router.PUT("/api/device/:id", dc.ModifyDevice)
 	router.DELETE("/api/device/:id", dc.DeleteDevice)
 
-	router.GET("/api/socket", sc.CheckDeviceStatus)
+	// router.GET("/api/socket", sc.CheckDeviceStatus)
 
-	sc.ValidateDevice()
-	sc.SendSocket()
+	router.Handler("GET", "/socket.io", sic.SocketHandler())
+
+	// http.Handle("/socket.io/", sic.SocketHandler())
+
+	// sc.ValidateDevice()
+	// sc.SendSocket()
 
 	err := http.ListenAndServe(":5000", router)
+	// log.Fatal(http.ListenAndServe(":8000", nil))
 
 	if err != nil {
 		log.Panic(err)
