@@ -43,86 +43,13 @@ func NewSocketController(ctx context.Context, db *mongo.Database) SocketControll
 	return SocketController{db, ctx}
 }
 
-//SendSocket returns data to socket after validation
-func (sc SocketController) SendSocket() {
-	ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				for _, socket := range sockets {
-					var message = map[string]bool{}
-					for _, device := range socket.devices {
-						mu.Lock()
-						message[device.(primitive.ObjectID).Hex()] = validation[device.(primitive.ObjectID).Hex()]
-						mu.Unlock()
-					}
-					emitMessage, err := json.Marshal(message)
-					if err != nil {
-						log.Println(err)
-					}
-					socket.Emit(string(emitMessage), socket.header)
-				}
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
-//ValidateDevice returns data to socket after validation
-func (sc SocketController) ValidateDevice() {
-	ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				for device := range devices {
-					go func(device string) {
-						var resultDevice models.Device
-						ID, err := primitive.ObjectIDFromHex(device)
-
-						if err != nil {
-							log.Println(err)
-						}
-
-						result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
-						result.Decode(&resultDevice)
-
-						if _, err := net.DialTimeout("tcp",
-							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
-							mu.Lock()
-							validation[device] = false
-							fmt.Println(err)
-							mu.Unlock()
-							return
-						}
-
-						mu.Lock()
-						validation[device] = true
-						mu.Unlock()
-						return
-					}(device)
-				}
-
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
 //CheckDeviceStatus route
 func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 	logged, user := isLoggedIn(w, r, sc.db)
 
 	if !logged {
 		w.WriteHeader(http.StatusUnauthorized)
+		io.WriteString(w, "You are not authorized to make this connection")
 		return
 	}
 
@@ -145,11 +72,9 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 
 		for {
 			event, header := socket.Read()
-
 			socket.header = header
 
 			switch event.EventName {
-
 			case "subscribe":
 				for _, val := range user.Devices {
 					if _, ok := sockets[cookie.Value]; !ok {
@@ -158,14 +83,12 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 				}
 
 				sockets[cookie.Value] = socket
-
-				socket.Emit("You have subscribed", header)
+				socket.Emit("subEvent", "You have subscribed")
 				fmt.Println(sockets, devices)
 
 			case "unsubscribe":
 				for _, val := range user.Devices {
 					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
-						fmt.Println("Code GOt here")
 						devices[val.(primitive.ObjectID).Hex()]--
 						if devices[val.(primitive.ObjectID).Hex()] <= 0 {
 							delete(devices, val.(primitive.ObjectID).Hex())
@@ -177,22 +100,30 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 					delete(sockets, cookie.Value)
 				}
 
-				socket.Emit("You have unsubscribed", header)
+				socket.Emit("subEvent", "You have unsubscribed")
 				fmt.Println(sockets, devices)
 
 			default:
-				socket.Emit("Unrecognized Event", header)
+				socket.Emit("subEvent", "Unrecognized Event")
 
 			}
 
 			if header.OpCode == ws.OpClose || header.OpCode == 0 {
-
 				fmt.Println("Closing socket")
+				for _, val := range user.Devices {
+					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
+						devices[val.(primitive.ObjectID).Hex()]--
+						if devices[val.(primitive.ObjectID).Hex()] <= 0 {
+							delete(devices, val.(primitive.ObjectID).Hex())
+						}
+					}
+				}
 
 				if _, ok := sockets[cookie.Value]; ok {
 					delete(sockets, cookie.Value)
 				}
 
+				fmt.Println(sockets, devices)
 				return
 			}
 		}
@@ -200,11 +131,10 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 }
 
 func (s socketConn) Read() (models.Event, ws.Header) {
-
 	header, err := ws.ReadHeader(s.conn)
+
 	if err != nil {
 		log.Println(err)
-		// handle error
 	}
 
 	payload := make([]byte, header.Length)
@@ -212,34 +142,131 @@ func (s socketConn) Read() (models.Event, ws.Header) {
 
 	if err != nil {
 		log.Println(err)
-		// handle error
 	}
+
 	if header.Masked {
 		ws.Cipher(payload, header.Mask, 0)
 	}
 
-	// Reset the Masked flag, server frames must not be masked as
-	// RFC6455 says.
 	header.Masked = false
-
 	var event models.Event
-
 	json.Unmarshal(payload, &event)
 
 	return event, header
 }
 
-func (s socketConn) Emit(payload string, header ws.Header) {
+func (s socketConn) Emit(EventName string, Payload interface{}) {
+	var event = models.Event{
+		EventName: EventName,
+		Payload:   Payload,
+	}
 
-	serverPayload := []byte(payload)
-	serverHeader := header
-	serverHeader.Length = int64(int(len(serverPayload)))
+	emitMessage, err := json.Marshal(event)
 
-	if err := ws.WriteHeader(s.conn, serverHeader); err != nil {
+	if err != nil {
 		log.Println(err)
 	}
 
-	if _, err := s.conn.Write(serverPayload); err != nil {
+	s.header.Length = int64(int(len(emitMessage)))
+
+	if err := ws.WriteHeader(s.conn, s.header); err != nil {
 		log.Println(err)
 	}
+
+	if _, err := s.conn.Write(emitMessage); err != nil {
+		log.Println(err)
+	}
+}
+
+//SendSocket returns data to socket after validation
+func (sc SocketController) SendSocket() {
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+
+			case <-ticker.C:
+				for _, socket := range sockets {
+					var message = map[string]bool{}
+					for _, device := range socket.devices {
+						mu.Lock()
+						message[device.(primitive.ObjectID).Hex()] = validation[device.(primitive.ObjectID).Hex()]
+						mu.Unlock()
+					}
+					socket.Emit("deviceStatus", message)
+				}
+
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
+//ValidateDevice returns data to socket after validation
+func (sc SocketController) ValidateDevice() {
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+
+				for device := range devices {
+					go func(device string) {
+						var resultDevice models.Device
+						ID, err := primitive.ObjectIDFromHex(device)
+
+						if err != nil {
+							log.Println(err)
+						}
+
+						result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
+						result.Decode(&resultDevice)
+
+						if _, err := net.DialTimeout("tcp",
+							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
+							mu.Lock()
+							validation[device] = false
+							log.Println(err)
+							mu.Unlock()
+							return
+						}
+
+						mu.Lock()
+						validation[device] = true
+						mu.Unlock()
+						return
+					}(device)
+				}
+
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
+//SocketCheck checks the status of socket every minute
+func (sc SocketController) SocketCheck() {
+	ticker := time.NewTicker(1 * time.Minute)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+
+			case <-ticker.C:
+				for _, socket := range sockets {
+					socket.Emit("socketStatus", "ping")
+				}
+
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }

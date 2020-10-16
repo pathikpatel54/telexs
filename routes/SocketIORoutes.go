@@ -3,8 +3,13 @@ package routes
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	socketio "github.com/googollee/go-socket.io"
+	"github.com/googollee/go-socket.io/engineio"
+	"github.com/googollee/go-socket.io/engineio/transport"
+	"github.com/googollee/go-socket.io/engineio/transport/polling"
+	"github.com/googollee/go-socket.io/engineio/transport/websocket"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/context"
 )
@@ -18,13 +23,24 @@ type SocketIOController struct {
 
 //NewSocketIOController returns a new SocketIOController Struct
 func NewSocketIOController(ctx context.Context, db *mongo.Database) SocketIOController {
-	server, err := socketio.NewServer(nil)
+	server, err := socketio.NewServer(&engineio.Options{
+		Transports: []transport.Transport{
+			polling.Default,
+			&websocket.Transport{
+				CheckOrigin: func(r *http.Request) bool {
+					return true
+				},
+			},
+		},
+	})
+
 	if err != nil {
 		log.Fatal(err)
 	}
 	return SocketIOController{db, ctx, server}
 }
 
+//SocketHandler returns a SocketHandler
 func (sic SocketIOController) SocketHandler() *socketio.Server {
 	fmt.Println("test1")
 	sic.socketServer.OnConnect("/", func(s socketio.Conn) error {

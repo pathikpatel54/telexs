@@ -3,18 +3,10 @@ import { BrowserRouter, Route } from "react-router-dom";
 import { connect } from "react-redux";
 import { fetchUser } from "../actions";
 import { Container } from 'rsuite'
-import io from 'socket.io-client';
 
 import Head from "./Header";
 import Landing from "./Landing";
 import Devices from "./Devices";
-
-var socket = io.connect('ws://localhost:8000', {
-    //forceNew : false,
-    transports: ['websocket']
-});
-
-socket.emit("test", "dnfvndfkvnkdfn")
 
 class App extends Component{
     componentDidMount() {
