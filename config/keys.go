@@ -9,6 +9,8 @@ type vars struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	MongodbUser        string
+	PaloAltoURI        string
+	PaloAltoKey        string
 }
 
 //Keys contains evironment variables

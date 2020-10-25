@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import { connect } from "react-redux";
 import { Container, Header, Content, Table, Popover, Whisper, Checkbox, Dropdown, IconButton, Icon, Divider } from 'rsuite';
 import { fetchDevices } from "../actions";
-import { fakedata as fakeData } from '../Placeholders/fakeData';
-
 
 const { Cell, Column, HeaderCell } = Table;
 
@@ -34,7 +32,9 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
     return (
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
-          <div>{rowData[dataKey].toLocaleString()}</div>
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <img style={{height: '12px'}} src={`/circle-${rowData[dataKey]}.ico`} /> : ''}</div>:
+            <div>{rowData[dataKey]}</div>
+          }
         </Whisper>
       </Cell>
     );
@@ -136,8 +136,6 @@ const ActionCell = ({ rowData, dataKey, ...props }) => {
     );
 };
   
-const data = fakeData.filter((v, i) => i < 20);
-  
 class CustomColumnTable extends React.Component {
     constructor(props) {
       super(props);
@@ -180,8 +178,9 @@ class CustomColumnTable extends React.Component {
   
       return (
         <div>
-          <Table
-            height={700}
+          <Table  
+            height={window.innerHeight - 100}
+            style={{marginRight: '25px', marginBottom: '20px'}}
             data={data}
             id="table"
             bodyRef={ref => {
@@ -189,7 +188,7 @@ class CustomColumnTable extends React.Component {
             }}
           >
             <Column width={50} align="center">
-              <HeaderCell style={{ padding: 0 }}>
+              <HeaderCell style={{ padding: 0, fontSize: '15px' }}>
                 <div style={{ lineHeight: '40px' }}>
                   <Checkbox
                     inline
@@ -207,37 +206,37 @@ class CustomColumnTable extends React.Component {
             </Column>
 
             <Column width={160} align="center">
-              <HeaderCell>Status</HeaderCell>
-              <NameCell dataKey="ipAddress" />
+              <HeaderCell style={{ fontSize: '15px'}}>Status</HeaderCell>
+              <NameCell dataKey="status" />
             </Column>
   
             <Column width={160}>
-              <HeaderCell>Hostname</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Hostname</HeaderCell>
               <NameCell dataKey="hostName" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell>Type</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Type</HeaderCell>
               <NameCell dataKey="type" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell>Vendor</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Vendor</HeaderCell>
               <NameCell dataKey="vendor" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell>Model</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Model</HeaderCell>
               <NameCell dataKey="model" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell>Version</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Version</HeaderCell>
               <NameCell dataKey="version" />
             </Column>
   
             <Column width={200}>
-              <HeaderCell>Action</HeaderCell>
+              <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
               <ActionCell dataKey="objectID" />
             </Column>
           </Table>
@@ -255,20 +254,26 @@ class Devices extends Component{
         console.log(this.props.devices)
         return (
             <Container>
-                <Header style={{ marginLeft: '2em'}}>
-                    <h2 >Devices</h2>
+                <Header style={{ marginLeft: '2em', marginTop: '1em'}}>
+                    <h2>List of Devices</h2>
                 </Header>
-                <Content style={{ marginLeft: '2em'}}>
+                <Content style={{ marginLeft: '2em', marginTop: '1em'}}>
                   {this.props.devices.data ? <CustomColumnTable data={this.props.devices.data}></CustomColumnTable> : ''}
-                  
                 </Content>
             </Container>
         );
     }
 }
 
-const mapStateToProps = ({ devices }) => {
-    return { devices };
+const mapStateToProps = ({ devices, status }) => {
+    const { data } = devices;
+    if(data && status.data) {
+      devices.data = data.map((device) => {
+        device.status = status.data[device.objectID];
+        return device;
+      });
+    }
+    return { devices, status };
 }
 
 export default connect(mapStateToProps, { fetchDevices })(Devices);

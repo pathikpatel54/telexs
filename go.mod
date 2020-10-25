@@ -3,6 +3,7 @@ module telexs
 go 1.14
 
 require (
+	github.com/PaloAltoNetworks/pango v0.4.0
 	github.com/aws/aws-sdk-go v1.34.16 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee // indirect

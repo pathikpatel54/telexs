@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { Navbar, Nav, Dropdown, Icon, Loader, Sidebar, Sidenav } from 'rsuite';
+import { withRouter } from 'react-router-dom';
 
 const headerStyles = {
   padding: 18,
@@ -59,6 +60,17 @@ class Head extends Component {
       active: 1
   }
 
+  componentDidMount() {
+    const {pathname} = this.props.location;
+    switch(pathname) {
+      case "/devices" || "/Devices":
+        this.setState({active: 2});
+        break;
+      default:
+        this.setState({active: 1})
+    }
+  }
+
   handleToggle = () => {
     this.setState({
       expand: !this.state.expand
@@ -95,11 +107,11 @@ class Head extends Component {
             >
               <Sidenav.Body>
                 <Nav>
-                  <Nav.Item onClick={() => this.handleSelect(1)} eventKey="1" active={active === 1 ? true : false} icon={<Icon icon="dashboard" />}>
+                  <Nav.Item onClick={() => {this.props.history.push("/"); return this.handleSelect(1)}} eventKey="1" active={active === 1 ? true : false} icon={<Icon icon="dashboard" />}>
                     Dashboard
                   </Nav.Item>
-                  <Nav.Item onClick={() => this.handleSelect(2)} eventKey="2" active={active === 2 ? true : false} icon={<Icon icon="group" />}>
-                    User Group
+                  <Nav.Item onClick={() => {this.props.history.push("/devices"); return this.handleSelect(2)}} eventKey="2" active={active === 2 ? true : false} icon={<Icon icon="group" />}>
+                    Devices
                   </Nav.Item>
                   <Dropdown
                     eventKey="3"
@@ -139,4 +151,4 @@ class Head extends Component {
   }
 }
 
-export default Head;
+export default withRouter(Head);

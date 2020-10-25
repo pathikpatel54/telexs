@@ -1,16 +1,19 @@
 import React, { Component } from "react";
 import { BrowserRouter, Route } from "react-router-dom";
 import { connect } from "react-redux";
-import { fetchUser } from "../actions";
+import { fetchUser, socketSub } from "../actions";
 import { Container } from 'rsuite'
 
 import Head from "./Header";
 import Landing from "./Landing";
 import Devices from "./Devices";
 
+const socket = new WebSocket("ws://localhost:5000/api/socket")
+
 class App extends Component{
     componentDidMount() {
         this.props.fetchUser()
+        this.props.socketSub(socket)
     }
 
     render() {
@@ -34,4 +37,4 @@ const mapStateToProps = ({ auth }) => {
     return { auth }
 }
 
-export default connect(mapStateToProps, {fetchUser})(App);
+export default connect(mapStateToProps, {fetchUser, socketSub})(App);

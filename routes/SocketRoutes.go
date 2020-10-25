@@ -2,13 +2,16 @@ package routes
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"sync"
+	"telexs/config"
 	"telexs/models"
 	"time"
 
@@ -29,7 +32,7 @@ var (
 	mu         sync.Mutex
 	sockets    = map[string]socketConn{}
 	devices    = map[string]int{}
-	validation = map[string]bool{}
+	validation = map[string]models.DeviceStats{}
 )
 
 //SocketController struct
@@ -188,7 +191,7 @@ func (sc SocketController) SendSocket() {
 
 			case <-ticker.C:
 				for _, socket := range sockets {
-					var message = map[string]bool{}
+					var message = map[string]models.DeviceStats{}
 					for _, device := range socket.devices {
 						mu.Lock()
 						message[device.(primitive.ObjectID).Hex()] = validation[device.(primitive.ObjectID).Hex()]
@@ -229,16 +232,58 @@ func (sc SocketController) ValidateDevice() {
 						if _, err := net.DialTimeout("tcp",
 							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
 							mu.Lock()
-							validation[device] = false
+							validation[device] = models.DeviceStats{
+								Status:    false,
+								AvgCPU:    0,
+								AvgMemory: 0,
+								UpTime:    "0",
+							}
 							log.Println(err)
 							mu.Unlock()
 							return
 						}
-
-						mu.Lock()
-						validation[device] = true
-						mu.Unlock()
-						return
+						switch resultDevice.Vendor {
+						case "PA":
+							var resp struct {
+								CPULoadAverage struct {
+									Text  string `xml:",chardata"`
+									Entry []struct {
+										Text   string `xml:",chardata"`
+										Coreid string `xml:"coreid"`
+										Value  string `xml:"value"`
+									} `xml:"entry"`
+								} `xml:"result>resource-monitor>data-processors>dp0>second>cpu-load-average"`
+							}
+							http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+							url := "https://" +
+								resultDevice.IPAddress +
+								config.Keys.PaloAltoURI +
+								"<show><running><resource-monitor><second><last>1</last></second></resource-monitor></running></show>&key=" +
+								config.Keys.PaloAltoKey
+							response, err := http.Get(url)
+							if err != nil {
+								log.Println(err)
+							}
+							xml.NewDecoder(response.Body).Decode(&resp)
+							// mu.Lock()
+							// validation[device] = models.DeviceStats{
+							// 	Status: true,
+							// 	AvgCPU:
+							// }
+							// mu.Unlock()
+							fmt.Println(resp)
+							return
+						default:
+							mu.Lock()
+							validation[device] = models.DeviceStats{
+								Status:    true,
+								AvgCPU:    0,
+								AvgMemory: 0,
+								UpTime:    "0",
+							}
+							mu.Unlock()
+							return
+						}
 					}(device)
 				}
 
@@ -270,3 +315,20 @@ func (sc SocketController) SocketCheck() {
 		}
 	}()
 }
+
+//Test function
+// func (sc SocketController) Test() {
+// 	c := pango.Firewall{Client: pango.Client{
+// 		Hostname: "192.168.1.200",
+// 		Username: "admin",
+// 		Password: "Panos@123",
+// 		Logging:  pango.LogAction | pango.LogOp,
+// 	}}
+// 	if err := c.Initialize(); err != nil {
+// 		log.Printf("Failed to initialize client: %s", err)
+// 		return
+// 	}
+// 	log.Printf("Initialize ok")
+
+// 	fmt.Println(c.SystemInfo)
+// }
