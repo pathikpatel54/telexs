@@ -2,17 +2,15 @@ package routes
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"sync"
-	"telexs/config"
 	"telexs/models"
+	"telexs/utils"
 	"time"
 
 	"github.com/gobwas/ws"
@@ -242,48 +240,11 @@ func (sc SocketController) ValidateDevice() {
 							mu.Unlock()
 							return
 						}
-						switch resultDevice.Vendor {
-						case "PA":
-							var resp struct {
-								CPULoadAverage struct {
-									Text  string `xml:",chardata"`
-									Entry []struct {
-										Text   string `xml:",chardata"`
-										Coreid string `xml:"coreid"`
-										Value  string `xml:"value"`
-									} `xml:"entry"`
-								} `xml:"result>resource-monitor>data-processors>dp0>second>cpu-load-average"`
-							}
-							http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-							url := "https://" +
-								resultDevice.IPAddress +
-								config.Keys.PaloAltoURI +
-								"<show><running><resource-monitor><second><last>1</last></second></resource-monitor></running></show>&key=" +
-								config.Keys.PaloAltoKey
-							response, err := http.Get(url)
-							if err != nil {
-								log.Println(err)
-							}
-							xml.NewDecoder(response.Body).Decode(&resp)
-							// mu.Lock()
-							// validation[device] = models.DeviceStats{
-							// 	Status: true,
-							// 	AvgCPU:
-							// }
-							// mu.Unlock()
-							fmt.Println(resp)
-							return
-						default:
-							mu.Lock()
-							validation[device] = models.DeviceStats{
-								Status:    true,
-								AvgCPU:    0,
-								AvgMemory: 0,
-								UpTime:    "0",
-							}
-							mu.Unlock()
-							return
-						}
+						c := make(chan models.DeviceStats)
+						go utils.GetDeviceInfo(resultDevice, c)
+
+						DeviceInfo := <-c
+						fmt.Println(DeviceInfo)
 					}(device)
 				}
 
