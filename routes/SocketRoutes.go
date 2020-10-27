@@ -240,10 +240,12 @@ func (sc SocketController) ValidateDevice() {
 							mu.Unlock()
 							return
 						}
-						c := make(chan models.DeviceStats)
-						go utils.GetDeviceInfo(resultDevice, c)
-
-						DeviceInfo := <-c
+						CPUChan := make(chan int)
+						MemChan := make(chan int)
+						go utils.GetDeviceCPU(resultDevice, CPUChan)
+						go utils.GetDeviceMem(resultDevice, MemChan)
+						AvgCPU := <-CPUChan
+						AvgMem := <-MemChan
 						fmt.Println(DeviceInfo)
 					}(device)
 				}

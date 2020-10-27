@@ -10,7 +10,7 @@ import (
 	"telexs/models"
 )
 
-func GetDeviceInfo(Device models.Device, c chan models.DeviceStats) {
+func GetDeviceCPU(Device models.Device, c chan int) {
 	switch Device.Vendor {
 	case "PA":
 		var resp struct {
@@ -46,12 +46,7 @@ func GetDeviceInfo(Device models.Device, c chan models.DeviceStats) {
 		if err != nil {
 			log.Println(err)
 		}
-		c <- models.DeviceStats{
-			Status:    true,
-			AvgCPU:    CPU,
-			AvgMemory: 0,
-			UpTime:    "0",
-		}
+		c <- CPU
 		return
 	default:
 		return
