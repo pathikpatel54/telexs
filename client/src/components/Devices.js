@@ -32,7 +32,7 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
     return (
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
-          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <img style={{height: '12px'}} src={`/circle-${rowData[dataKey]}.ico`} /> : ''}</div>:
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <img style={{height: '12px'}} src={`/circle-${rowData[dataKey].split(",")[0]}.ico`} /> : ''}</div>:
             <div>{rowData[dataKey]}</div>
           }
         </Whisper>
@@ -62,6 +62,7 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
     <Cell {...props} style={{ padding: 0 }}>
       <div style={{ lineHeight: '46px' }}>
         <Checkbox
+          style={{marginBottom: "8px"}}
           value={rowData[dataKey]}
           inline
           onChange={onChange}
@@ -207,37 +208,37 @@ class CustomColumnTable extends React.Component {
 
             <Column width={160} align="center">
               <HeaderCell style={{ fontSize: '15px'}}>Status</HeaderCell>
-              <NameCell dataKey="status" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="status" />
             </Column>
   
             <Column width={160}>
               <HeaderCell style={{ fontSize: '15px'}}>Hostname</HeaderCell>
-              <NameCell dataKey="hostName" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="hostName" />
             </Column>
 
             <Column width={160}>
               <HeaderCell style={{ fontSize: '15px'}}>Type</HeaderCell>
-              <NameCell dataKey="type" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="type" />
             </Column>
 
             <Column width={160}>
               <HeaderCell style={{ fontSize: '15px'}}>Vendor</HeaderCell>
-              <NameCell dataKey="vendor" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="vendor" />
             </Column>
 
             <Column width={160}>
               <HeaderCell style={{ fontSize: '15px'}}>Model</HeaderCell>
-              <NameCell dataKey="model" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="model" />
             </Column>
 
             <Column width={160}>
               <HeaderCell style={{ fontSize: '15px'}}>Version</HeaderCell>
-              <NameCell dataKey="version" />
+              <NameCell style={{paddingTop: "10px"}} dataKey="version" />
             </Column>
   
             <Column width={200}>
               <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
-              <ActionCell dataKey="objectID" />
+              <ActionCell style={{paddingTop: "5px"}} dataKey="objectID" />
             </Column>
           </Table>
         </div>

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"telexs/models"
 	"telexs/utils"
@@ -30,7 +31,7 @@ var (
 	mu         sync.Mutex
 	sockets    = map[string]socketConn{}
 	devices    = map[string]int{}
-	validation = map[string]models.DeviceStats{}
+	validation = map[string]string{}
 )
 
 //SocketController struct
@@ -189,7 +190,7 @@ func (sc SocketController) SendSocket() {
 
 			case <-ticker.C:
 				for _, socket := range sockets {
-					var message = map[string]models.DeviceStats{}
+					var message = map[string]string{}
 					for _, device := range socket.devices {
 						mu.Lock()
 						message[device.(primitive.ObjectID).Hex()] = validation[device.(primitive.ObjectID).Hex()]
@@ -214,7 +215,6 @@ func (sc SocketController) ValidateDevice() {
 		for {
 			select {
 			case <-ticker.C:
-
 				for device := range devices {
 					go func(device string) {
 						var resultDevice models.Device
@@ -230,26 +230,23 @@ func (sc SocketController) ValidateDevice() {
 						if _, err := net.DialTimeout("tcp",
 							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
 							mu.Lock()
-							validation[device] = models.DeviceStats{
-								Status:    false,
-								AvgCPU:    0,
-								AvgMemory: 0,
-								UpTime:    "0",
-							}
+							validation[device] = "false,0,0,0,0"
 							log.Println(err)
 							mu.Unlock()
 							return
 						}
 						CPUChan := make(chan int)
-						MemChan := make(chan int)
+						MemChan := make(chan string)
 						go utils.GetDeviceCPU(resultDevice, CPUChan)
-						go utils.GetDeviceMem(resultDevice, MemChan)
+						go utils.GetDeviceMemUp(resultDevice, MemChan)
 						AvgCPU := <-CPUChan
 						AvgMem := <-MemChan
-						fmt.Println(DeviceInfo)
+						mu.Lock()
+						validation[device] = "true," + strconv.Itoa(AvgCPU) + "," + AvgMem
+						fmt.Println(validation[device])
+						mu.Unlock()
 					}(device)
 				}
-
 			case <-quit:
 				ticker.Stop()
 				return
@@ -278,20 +275,3 @@ func (sc SocketController) SocketCheck() {
 		}
 	}()
 }
-
-//Test function
-// func (sc SocketController) Test() {
-// 	c := pango.Firewall{Client: pango.Client{
-// 		Hostname: "192.168.1.200",
-// 		Username: "admin",
-// 		Password: "Panos@123",
-// 		Logging:  pango.LogAction | pango.LogOp,
-// 	}}
-// 	if err := c.Initialize(); err != nil {
-// 		log.Printf("Failed to initialize client: %s", err)
-// 		return
-// 	}
-// 	log.Printf("Initialize ok")
-
-// 	fmt.Println(c.SystemInfo)
-// }
