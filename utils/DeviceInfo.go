@@ -8,8 +8,16 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"telexs/config"
 	"telexs/models"
+
+	"golang.org/x/crypto/ssh"
+)
+
+var (
+	sshConn = map[string]*ssh.Client{}
+	mu      sync.Mutex
 )
 
 func GetDeviceCPU(Device models.Device, c chan int) {
@@ -34,13 +42,28 @@ func GetDeviceCPU(Device models.Device, c chan int) {
 		response, err := http.Get(url)
 		if err != nil {
 			log.Println(err)
+			c <- 0
+			return
 		}
 		xml.NewDecoder(response.Body).Decode(&resp)
-
-		CPU, err := strconv.Atoi(resp.CPULoadAverage.Entry[1].Value)
-
+		if len(resp.CPULoadAverage.Entry) > 0 {
+			CPU, err := strconv.Atoi(resp.CPULoadAverage.Entry[1].Value)
+			if err != nil {
+				log.Println(err)
+				c <- 0
+				return
+			}
+			c <- CPU
+			return
+		}
+		c <- 0
+		return
+	case "Checkpoint", "CHECKPOINT", "checkpoint":
+		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf", "CPU Usage (%):                           ", "\nCPU Queue Length:")
 		if err != nil {
 			log.Println(err)
+			c <- 0
+			return
 		}
 		c <- CPU
 		return
@@ -65,11 +88,23 @@ func GetDeviceMemUp(Device models.Device, c chan string) {
 		response, err := http.Get(url)
 		if err != nil {
 			log.Println(err)
+			c <- "0,0,0"
+			return
 		}
-		xml.NewDecoder(response.Body).Decode(&resp)
+		err1 := xml.NewDecoder(response.Body).Decode(&resp)
+		if err1 != nil {
+			log.Println(err)
+			c <- "0,0,0"
+			return
+		}
 		space := regexp.MustCompile(`\s+`)
 		Line := space.ReplaceAllString(resp.Result, " ")
-		c <- between(Line, "up ", ", ") + "," + strings.Split(after(Line, "KiB Mem :"), " ")[1] + "," + between(Line, "free, ", " used,")
+		Words := strings.Split(after(Line, "KiB Mem :"), " ")
+		if len(Words) > 0 {
+			c <- between(Line, "up ", ", ") + "," + Words[1] + "," + between(Line, "free, ", " used,")
+			return
+		}
+		c <- "0,0,0"
 		return
 	default:
 		c <- "0,0,0"
@@ -105,4 +140,64 @@ func after(value string, a string) string {
 		return ""
 	}
 	return value[adjustedPos:len(value)]
+}
+
+func createConn(user string, pass string, host string) (*ssh.Client, error) {
+	config := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(pass),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	conn, err := ssh.Dial("tcp", host+":22", config)
+	if err != nil {
+		return nil, err
+	}
+	return conn, err
+}
+
+func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (int, error) {
+	if _, ok := sshConn[deviceIP]; ok {
+		sess, err := sshConn[deviceIP].NewSession()
+		if err != nil {
+			log.Printf("%s Trying to connect again", err)
+			mu.Lock()
+			sshConn[deviceIP], err = createConn(username, pass, deviceIP)
+			mu.Unlock()
+			if err != nil {
+				return 0, err
+			}
+			sess, err = sshConn[deviceIP].NewSession()
+		}
+		if err != nil {
+			return 0, err
+		}
+		defer sess.Close()
+		bs, err := sess.Output(cmd)
+		CPU, err := strconv.Atoi(between(string(bs), btw1, btw2))
+		if err != nil {
+			return 0, err
+		}
+		return CPU, nil
+	}
+
+	var err error
+	mu.Lock()
+	sshConn[deviceIP], err = createConn(username, pass, deviceIP)
+	mu.Unlock()
+	if err != nil {
+		return 0, err
+	}
+	sess, err := sshConn[deviceIP].NewSession()
+	if err != nil {
+		return 0, err
+	}
+	defer sess.Close()
+	bs, err := sess.Output(cmd)
+	CPU, err := strconv.Atoi(between(string(bs), btw1, btw2))
+	if err != nil {
+		return 0, err
+	}
+	return CPU, nil
 }

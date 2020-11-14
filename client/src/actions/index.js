@@ -36,4 +36,10 @@ export const socketSub = (socket) => async dispatch => {
                 console.log(event);
         }
     }
+
+    socket.onclose = () => {
+        console.log("Re-connecting Socket");
+        const socket = new WebSocket("ws://localhost:5000/api/socket");
+        socketSub(socket)(dispatch);
+    }
 }

@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { Container, Header, Content, Table, Popover, Whisper, Checkbox, Dropdown, IconButton, Icon, Divider } from 'rsuite';
+import { Container, Header, Content, Table, Popover, Whisper, Checkbox, Dropdown, IconButton, Icon, Divider, Progress } from 'rsuite';
 import { fetchDevices } from "../actions";
-
+const { Line } = Progress;
 const { Cell, Column, HeaderCell } = Table;
 
 const NameCell = ({ rowData, dataKey, ...props }) => {
@@ -33,6 +33,76 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
           {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <img style={{height: '12px'}} src={`/circle-${rowData[dataKey].split(",")[0]}.ico`} /> : ''}</div>:
+            <div>{rowData[dataKey]}</div>
+          }
+        </Whisper>
+      </Cell>
+    );
+  };
+
+  const CpuCell = ({ rowData, dataKey, ...props }) => {
+    const speaker = (
+      <Popover title="Description">
+        <p>
+          <b>Hostname:</b> {`${rowData.hostName}`}{' '}
+        </p>
+        <p>
+          <b>IPAddress:</b> {rowData.ipAddress}{' '}
+        </p>
+        <p>
+          <b>Type:</b> {rowData.type}{' '}
+        </p>
+        <p>
+          <b>Vendor:</b> {rowData.vendor}{' '}
+        </p>
+        <p>
+          <b>Model:</b> {rowData.model}{' '}
+        </p>
+        <p>
+          <b>Version:</b> {rowData.version}{' '}
+        </p>
+      </Popover>
+    );
+  
+    return (
+      <Cell {...props}>
+        <Whisper placement="bottom" speaker={speaker}>
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={Number(rowData[dataKey].split(",")[1])} status='active' /> : ''}</div>:
+            <div>{rowData[dataKey]}</div>
+          }
+        </Whisper>
+      </Cell>
+    );
+  };
+
+  const MemCell = ({ rowData, dataKey, ...props }) => {
+    const speaker = (
+      <Popover title="Description">
+        <p>
+          <b>Hostname:</b> {`${rowData.hostName}`}{' '}
+        </p>
+        <p>
+          <b>IPAddress:</b> {rowData.ipAddress}{' '}
+        </p>
+        <p>
+          <b>Type:</b> {rowData.type}{' '}
+        </p>
+        <p>
+          <b>Vendor:</b> {rowData.vendor}{' '}
+        </p>
+        <p>
+          <b>Model:</b> {rowData.model}{' '}
+        </p>
+        <p>
+          <b>Version:</b> {rowData.version}{' '}
+        </p>
+      </Popover>
+    );
+    const memory = rowData[dataKey] ? Number(rowData[dataKey].split(",")[4])/Number(rowData[dataKey].split(",")[3]) ? Math.round((Number(rowData[dataKey].split(",")[4])/Number(rowData[dataKey].split(",")[3]))*100) : 0 : 0
+    return (
+      <Cell {...props}>
+        <Whisper placement="bottom" speaker={speaker}>
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={memory} strokeColor="#58b15b" /> : ''}</div>:
             <div>{rowData[dataKey]}</div>
           }
         </Whisper>
@@ -209,6 +279,16 @@ class CustomColumnTable extends React.Component {
             <Column width={160} align="center">
               <HeaderCell style={{ fontSize: '15px'}}>Status</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="status" />
+            </Column>
+
+            <Column width={160} align="center">
+              <HeaderCell style={{ fontSize: '15px'}}>CPU</HeaderCell>
+              <CpuCell style={{paddingTop: "3px"}} dataKey="status" />
+            </Column>
+
+            <Column width={160} align="center">
+              <HeaderCell style={{ fontSize: '15px'}}>Memory</HeaderCell>
+              <MemCell style={{paddingTop: "3px"}} dataKey="status" />
             </Column>
   
             <Column width={160}>

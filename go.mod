@@ -19,7 +19,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.5.1
 	go.mongodb.org/mongo-driver v1.4.1
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 // indirect
