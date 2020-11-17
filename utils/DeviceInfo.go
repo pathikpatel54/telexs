@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"telexs/config"
@@ -20,7 +19,7 @@ var (
 	mu      sync.Mutex
 )
 
-func GetDeviceCPU(Device models.Device, c chan int) {
+func GetDeviceCPU(Device models.Device, c chan string) {
 	switch Device.Vendor {
 	case "PA":
 		var resp struct {
@@ -42,33 +41,27 @@ func GetDeviceCPU(Device models.Device, c chan int) {
 		response, err := http.Get(url)
 		if err != nil {
 			log.Println(err)
-			c <- 0
+			c <- "0"
 			return
 		}
 		xml.NewDecoder(response.Body).Decode(&resp)
 		if len(resp.CPULoadAverage.Entry) > 0 {
-			CPU, err := strconv.Atoi(resp.CPULoadAverage.Entry[1].Value)
-			if err != nil {
-				log.Println(err)
-				c <- 0
-				return
-			}
-			c <- CPU
+			c <- resp.CPULoadAverage.Entry[1].Value
 			return
 		}
-		c <- 0
+		c <- "0"
 		return
 	case "Checkpoint", "CHECKPOINT", "checkpoint":
-		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf", "CPU Usage (%):                           ", "\nCPU Queue Length:")
+		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf", "CPU Usage (%): ", " CPU Queue Length:")
 		if err != nil {
 			log.Println(err)
-			c <- 0
+			c <- "0"
 			return
 		}
 		c <- CPU
 		return
 	default:
-		c <- 0
+		c <- "0"
 		return
 	}
 }
@@ -157,7 +150,7 @@ func createConn(user string, pass string, host string) (*ssh.Client, error) {
 	return conn, err
 }
 
-func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (int, error) {
+func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (string, error) {
 	if _, ok := sshConn[deviceIP]; ok {
 		sess, err := sshConn[deviceIP].NewSession()
 		if err != nil {
@@ -166,20 +159,18 @@ func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (int, er
 			sshConn[deviceIP], err = createConn(username, pass, deviceIP)
 			mu.Unlock()
 			if err != nil {
-				return 0, err
+				return "0", err
 			}
 			sess, err = sshConn[deviceIP].NewSession()
 		}
 		if err != nil {
-			return 0, err
+			return "0", err
 		}
 		defer sess.Close()
 		bs, err := sess.Output(cmd)
-		CPU, err := strconv.Atoi(between(string(bs), btw1, btw2))
-		if err != nil {
-			return 0, err
-		}
-		return CPU, nil
+		space := regexp.MustCompile(`\s+`)
+		CPU := space.ReplaceAllString(string(bs), " ")
+		return between(CPU, btw1, btw2), nil
 	}
 
 	var err error
@@ -187,17 +178,24 @@ func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (int, er
 	sshConn[deviceIP], err = createConn(username, pass, deviceIP)
 	mu.Unlock()
 	if err != nil {
-		return 0, err
+		return "0", err
 	}
 	sess, err := sshConn[deviceIP].NewSession()
 	if err != nil {
-		return 0, err
+		return "0", err
 	}
 	defer sess.Close()
+	// modes := ssh.TerminalModes{
+	// 	ssh.ECHO:          0,     // disable echoing
+	// 	ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+	// 	ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	// }
+
+	// if err := sess.RequestPty("xterm", 80, 40, modes); err != nil {
+	// 	log.Fatal(err)
+	// }
 	bs, err := sess.Output(cmd)
-	CPU, err := strconv.Atoi(between(string(bs), btw1, btw2))
-	if err != nil {
-		return 0, err
-	}
-	return CPU, nil
+	space := regexp.MustCompile(`\s+`)
+	CPU := space.ReplaceAllString(string(bs), " ")
+	return between(CPU, btw1, btw2), nil
 }

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"telexs/models"
 	"telexs/utils"
@@ -235,14 +234,14 @@ func (sc SocketController) ValidateDevice() {
 							mu.Unlock()
 							return
 						}
-						CPUChan := make(chan int)
+						CPUChan := make(chan string)
 						MemChan := make(chan string)
 						go utils.GetDeviceCPU(resultDevice, CPUChan)
 						go utils.GetDeviceMemUp(resultDevice, MemChan)
 						AvgCPU := <-CPUChan
 						AvgMem := <-MemChan
 						mu.Lock()
-						validation[device] = "true," + strconv.Itoa(AvgCPU) + "," + AvgMem
+						validation[device] = "true," + AvgCPU + "," + AvgMem
 						fmt.Println(validation[device])
 						mu.Unlock()
 					}(device)

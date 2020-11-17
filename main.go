@@ -35,7 +35,6 @@ func main() {
 	// router.Handler("GET", "/socket.io/", sic.SocketHandler())
 
 	// http.Handle("/socket.io/", sic.SocketHandler())
-
 	sc.ValidateDevice()
 	sc.SendSocket()
 	sc.SocketCheck()
