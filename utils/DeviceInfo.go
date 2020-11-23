@@ -1,14 +1,12 @@
 package utils
 
 import (
-	"crypto/tls"
-	"encoding/xml"
+	"bytes"
+	"fmt"
 	"log"
-	"net/http"
 	"regexp"
 	"strings"
 	"sync"
-	"telexs/config"
 	"telexs/models"
 
 	"golang.org/x/crypto/ssh"
@@ -22,43 +20,28 @@ var (
 func GetDeviceCPU(Device models.Device, c chan string) {
 	switch Device.Vendor {
 	case "PA":
-		var resp struct {
-			CPULoadAverage struct {
-				Text  string `xml:",chardata"`
-				Entry []struct {
-					Text   string `xml:",chardata"`
-					Coreid string `xml:"coreid"`
-					Value  string `xml:"value"`
-				} `xml:"entry"`
-			} `xml:"result>resource-monitor>data-processors>dp0>minute>cpu-load-average"`
-		}
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		url := "https://" +
-			Device.IPAddress +
-			config.Keys.PaloAltoURI +
-			"<show><running><resource-monitor><minute><last>1</last></minute></resource-monitor></running></show>&key=" +
-			config.Keys.PaloAltoKey
-		response, err := http.Get(url)
+		CPU, err := writeConn(Device.IPAddress, "admin", "Panos@123", "show running resource-monitor second last 1")
 		if err != nil {
 			log.Println(err)
 			c <- "0"
 			return
 		}
-		xml.NewDecoder(response.Body).Decode(&resp)
-		if len(resp.CPULoadAverage.Entry) > 0 {
-			c <- resp.CPULoadAverage.Entry[1].Value
+		cpusl := strings.Split(between(CPU, "core ", " Resource utilization"), " ")
+		if len(cpusl) > 1 && len(cpusl)%2 == 0 {
+			cpu1 := cpusl[(len(cpusl)/2)+1]
+			c <- cpu1
 			return
 		}
-		c <- "0"
+		c <- ""
 		return
 	case "Checkpoint", "CHECKPOINT", "checkpoint":
-		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf", "CPU Usage (%): ", " CPU Queue Length:")
+		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf")
 		if err != nil {
 			log.Println(err)
 			c <- "0"
 			return
 		}
-		c <- CPU
+		c <- between(CPU, "CPU Usage (%): ", " CPU Queue Length:")
 		return
 	default:
 		c <- "0"
@@ -69,35 +52,22 @@ func GetDeviceCPU(Device models.Device, c chan string) {
 func GetDeviceMemUp(Device models.Device, c chan string) {
 	switch Device.Vendor {
 	case "PA":
-		var resp struct {
-			Result string `xml:"result"`
-		}
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		url := "https://" +
-			Device.IPAddress +
-			config.Keys.PaloAltoURI +
-			"<show><system><resources></resources></system></show>&key=" +
-			config.Keys.PaloAltoKey
-		response, err := http.Get(url)
+		Mem, err := writeConn(Device.IPAddress, "admin", "Panos@123", "show system resources")
 		if err != nil {
 			log.Println(err)
 			c <- "0,0,0"
 			return
 		}
-		err1 := xml.NewDecoder(response.Body).Decode(&resp)
-		if err1 != nil {
+		c <- between(Mem, "up ", ", ") + "," + strings.Split(after(Mem, "KiB Mem :"), " ")[1] + "," + between(Mem, "free, ", " used,")
+		return
+	case "Checkpoint", "CHECKPOINT", "checkpoint":
+		Mem, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf\nuptime")
+		if err != nil {
 			log.Println(err)
 			c <- "0,0,0"
 			return
 		}
-		space := regexp.MustCompile(`\s+`)
-		Line := space.ReplaceAllString(resp.Result, " ")
-		Words := strings.Split(after(Line, "KiB Mem :"), " ")
-		if len(Words) > 0 {
-			c <- between(Line, "up ", ", ") + "," + Words[1] + "," + between(Line, "free, ", " used,")
-			return
-		}
-		c <- "0,0,0"
+		c <- strings.Split(after(Mem, "up "), ", ")[0] + "," + between(Mem, "Total Real Memory (Bytes): ", " Active Real Memory (Bytes):") + "," + between(Mem, "Free Real Memory (Bytes): ", " Memory Swaps/Sec:")
 		return
 	default:
 		c <- "0,0,0"
@@ -128,11 +98,12 @@ func after(value string, a string) string {
 	if pos == -1 {
 		return ""
 	}
+	lenv := len(value)
 	adjustedPos := pos + len(a)
 	if adjustedPos >= len(value) {
 		return ""
 	}
-	return value[adjustedPos:len(value)]
+	return value[adjustedPos:lenv]
 }
 
 func createConn(user string, pass string, host string) (*ssh.Client, error) {
@@ -150,7 +121,7 @@ func createConn(user string, pass string, host string) (*ssh.Client, error) {
 	return conn, err
 }
 
-func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (string, error) {
+func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 	if _, ok := sshConn[deviceIP]; ok {
 		sess, err := sshConn[deviceIP].NewSession()
 		if err != nil {
@@ -167,10 +138,32 @@ func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (string,
 			return "0", err
 		}
 		defer sess.Close()
-		bs, err := sess.Output(cmd)
+
+		stdin, err := sess.StdinPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var b bytes.Buffer
+		sess.Stdout = &b
+
+		err = sess.Shell()
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = fmt.Fprintf(stdin, "%s\nexit\n", cmd)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = sess.Wait()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		space := regexp.MustCompile(`\s+`)
-		CPU := space.ReplaceAllString(string(bs), " ")
-		return between(CPU, btw1, btw2), nil
+		str := space.ReplaceAllString(b.String(), " ")
+		return str, nil
 	}
 
 	var err error
@@ -185,17 +178,30 @@ func writeConn(deviceIP string, username, pass, cmd, btw1, btw2 string) (string,
 		return "0", err
 	}
 	defer sess.Close()
-	// modes := ssh.TerminalModes{
-	// 	ssh.ECHO:          0,     // disable echoing
-	// 	ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-	// 	ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-	// }
 
-	// if err := sess.RequestPty("xterm", 80, 40, modes); err != nil {
-	// 	log.Fatal(err)
-	// }
-	bs, err := sess.Output(cmd)
+	stdin, err := sess.StdinPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var b bytes.Buffer
+	sess.Stdout = &b
+
+	err = sess.Shell()
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = fmt.Fprintf(stdin, "%s\nexit\n", cmd)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = sess.Wait()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	space := regexp.MustCompile(`\s+`)
-	CPU := space.ReplaceAllString(string(bs), " ")
-	return between(CPU, btw1, btw2), nil
+	str := space.ReplaceAllString(b.String(), " ")
+	return str, nil
 }

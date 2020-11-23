@@ -80,6 +80,7 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 				for _, val := range user.Devices {
 					if _, ok := sockets[cookie.Value]; !ok {
 						devices[val.(primitive.ObjectID).Hex()]++
+						go sc.getResources(val.(primitive.ObjectID).Hex())
 					}
 				}
 
@@ -208,43 +209,19 @@ func (sc SocketController) SendSocket() {
 
 //ValidateDevice returns data to socket after validation
 func (sc SocketController) ValidateDevice() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
+	// counter := 0
 	quit := make(chan struct{})
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				for device := range devices {
-					go func(device string) {
-						var resultDevice models.Device
-						ID, err := primitive.ObjectIDFromHex(device)
-
-						if err != nil {
-							log.Println(err)
-						}
-
-						result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
-						result.Decode(&resultDevice)
-
-						if _, err := net.DialTimeout("tcp",
-							resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
-							mu.Lock()
-							validation[device] = "false,0,0,0,0"
-							log.Println(err)
-							mu.Unlock()
-							return
-						}
-						CPUChan := make(chan string)
-						MemChan := make(chan string)
-						go utils.GetDeviceCPU(resultDevice, CPUChan)
-						go utils.GetDeviceMemUp(resultDevice, MemChan)
-						AvgCPU := <-CPUChan
-						AvgMem := <-MemChan
-						mu.Lock()
-						validation[device] = "true," + AvgCPU + "," + AvgMem
-						fmt.Println(validation[device])
-						mu.Unlock()
-					}(device)
+					// if counter == 0 {
+					// 	ticker = time.NewTicker(1 * time.Minute)
+					// 	counter++
+					// }
+					go sc.getResources(device)
 				}
 			case <-quit:
 				ticker.Stop()
@@ -273,4 +250,35 @@ func (sc SocketController) SocketCheck() {
 			}
 		}
 	}()
+}
+
+func (sc SocketController) getResources(device string) {
+	var resultDevice models.Device
+	ID, err := primitive.ObjectIDFromHex(device)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
+	result.Decode(&resultDevice)
+
+	if _, err := net.DialTimeout("tcp",
+		resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
+		mu.Lock()
+		validation[device] = "false,0,0,0,0"
+		log.Println(err)
+		mu.Unlock()
+		return
+	}
+	CPUChan := make(chan string)
+	MemChan := make(chan string)
+	go utils.GetDeviceCPU(resultDevice, CPUChan)
+	go utils.GetDeviceMemUp(resultDevice, MemChan)
+	AvgCPU := <-CPUChan
+	AvgMem := <-MemChan
+	mu.Lock()
+	validation[device] = "true," + AvgCPU + "," + AvgMem
+	fmt.Println(validation[device])
+	mu.Unlock()
 }

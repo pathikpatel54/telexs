@@ -32,7 +32,7 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
     return (
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
-          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <img style={{height: '12px'}} src={`/circle-${rowData[dataKey].split(",")[0]}.ico`} /> : ''}</div>:
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ?<Icon icon='circle' style={rowData[dataKey].split(",")[0] === 'true' ? {color: '#2b850d'} : {color: '#d62915'}} /> : ''}</div>:
             <div>{rowData[dataKey]}</div>
           }
         </Whisper>
@@ -63,11 +63,20 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
         </p>
       </Popover>
     );
-  
+    const cpu = rowData[dataKey] ? rowData[dataKey].split(",")[1] ? Number(rowData[dataKey].split(",")[1]) : 0 : 0
+    let strokeColor = '';
+    if (cpu >= 0 && cpu <= 40) {
+      strokeColor = '#2b850d'
+    } else if (cpu > 40 && cpu <= 80) {
+      strokeColor = '#eb9d17'
+    } else if(cpu > 80 ) {
+      strokeColor = '#d62915'
+    }
+
     return (
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
-          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={Number(rowData[dataKey].split(",")[1])} status='active' /> : ''}</div>:
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={Number(rowData[dataKey].split(",")[1])} strokeColor={strokeColor} /> : ''}</div>:
             <div>{rowData[dataKey]}</div>
           }
         </Whisper>
@@ -99,10 +108,18 @@ const NameCell = ({ rowData, dataKey, ...props }) => {
       </Popover>
     );
     const memory = rowData[dataKey] ? Number(rowData[dataKey].split(",")[4])/Number(rowData[dataKey].split(",")[3]) ? Math.round((Number(rowData[dataKey].split(",")[4])/Number(rowData[dataKey].split(",")[3]))*100) : 0 : 0
+    let strokeColor = '';
+    if (memory >= 0 && memory <= 40) {
+      strokeColor = '#2b850d'
+    } else if (memory > 40 && memory <= 80) {
+      strokeColor = '#eb9d17'
+    } else if(memory > 80 ) {
+      strokeColor = '#d62915'
+    }
     return (
       <Cell {...props}>
         <Whisper placement="bottom" speaker={speaker}>
-          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={memory} strokeColor="#58b15b" /> : ''}</div>:
+          {dataKey === 'status' ? <div>{rowData[dataKey] != null ? <Line percent={memory} strokeColor={strokeColor} /> : ''}</div>:
             <div>{rowData[dataKey]}</div>
           }
         </Whisper>
@@ -257,9 +274,10 @@ class CustomColumnTable extends React.Component {
             bodyRef={ref => {
               tableBody = ref;
             }}
+            headerHeight={50}
           >
             <Column width={50} align="center">
-              <HeaderCell style={{ padding: 0, fontSize: '15px' }}>
+              <HeaderCell style={{ padding: 0, fontSize: '17px' }}>
                 <div style={{ lineHeight: '40px' }}>
                   <Checkbox
                     inline
@@ -277,47 +295,47 @@ class CustomColumnTable extends React.Component {
             </Column>
 
             <Column width={160} align="center">
-              <HeaderCell style={{ fontSize: '15px'}}>Status</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Status</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="status" />
             </Column>
 
             <Column width={160} align="center">
-              <HeaderCell style={{ fontSize: '15px'}}>CPU</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>CPU</HeaderCell>
               <CpuCell style={{paddingTop: "3px"}} dataKey="status" />
             </Column>
 
             <Column width={160} align="center">
-              <HeaderCell style={{ fontSize: '15px'}}>Memory</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Memory</HeaderCell>
               <MemCell style={{paddingTop: "3px"}} dataKey="status" />
             </Column>
   
             <Column width={160}>
-              <HeaderCell style={{ fontSize: '15px'}}>Hostname</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Hostname</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="hostName" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell style={{ fontSize: '15px'}}>Type</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Type</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="type" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell style={{ fontSize: '15px'}}>Vendor</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Vendor</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="vendor" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell style={{ fontSize: '15px'}}>Model</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Model</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="model" />
             </Column>
 
             <Column width={160}>
-              <HeaderCell style={{ fontSize: '15px'}}>Version</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Version</HeaderCell>
               <NameCell style={{paddingTop: "10px"}} dataKey="version" />
             </Column>
   
             <Column width={200}>
-              <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
+              <HeaderCell style={{ fontSize: '17px'}}>Action</HeaderCell>
               <ActionCell style={{paddingTop: "5px"}} dataKey="objectID" />
             </Column>
           </Table>
