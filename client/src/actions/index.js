@@ -1,5 +1,6 @@
 import axios from "axios";
 import { FETCH_USER_ERROR, FETCH_USER_SUCCESS, FETCH_USER, FETCH_DEVICES, FETCH_DEVICES_SUCCESS, FETCH_DEVICES_ERROR, CHANGE_DEVICE_STATUS } from "./types";
+let count = 0;
 
 export const fetchUser = () => async dispatch => {
     dispatch({ type: FETCH_USER });
@@ -38,8 +39,11 @@ export const socketSub = (socket) => async dispatch => {
     }
 
     socket.onclose = () => {
-        console.log("Re-connecting Socket");
-        const socket = new WebSocket("ws://localhost:5000/api/socket");
-        socketSub(socket)(dispatch);
+        if (count <= 4) {
+            console.log("Re-connecting Socket");
+            const socket = new WebSocket("ws://localhost:5000/api/socket");
+            socketSub(socket)(dispatch);
+            count++;
+        }
     }
 }
