@@ -41,7 +41,6 @@ func main() {
 
 	// err := http.ListenAndServe(":5000", router)
 	log.Fatal(http.ListenAndServe(":5000", router))
-
 	// if err != nil {
 	// 	log.Panic(err)
 	// }

@@ -3,7 +3,6 @@ package routes
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"telexs/models"
@@ -42,7 +41,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 
 	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
 
-	fmt.Println(NewDevice)
+	// fmt.Println(NewDevice)
 
 	if err != nil {
 		log.Panic(err)
@@ -55,7 +54,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	}, &options.FindOneAndUpdateOptions{Upsert: &t})
 
 	result.Decode(&AddedDevice)
-	fmt.Println(AddedDevice)
+	// fmt.Println(AddedDevice)
 
 	if AddedDevice.ID == primitive.NilObjectID {
 		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
@@ -66,6 +65,7 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		if err != nil {
 			log.Panic(err)
 		}
+		json.NewEncoder(w).Encode(&NewDevice)
 	} else {
 		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
 			"devices": AddedDevice.ID,
@@ -75,6 +75,8 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 		if err != nil {
 			log.Panic(err)
 		}
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(&AddedDevice)
 	}
 }
 

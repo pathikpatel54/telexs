@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type socketConn struct {
@@ -67,6 +68,67 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	socket := socketConn{conn, ws.Header{}, user.Devices}
+
+	go func() {
+		pipeline := mongo.Pipeline{bson.D{
+			{Key: "$match",
+				Value: bson.D{
+					{Key: "fullDocument._id", Value: user.ID},
+				},
+			},
+		}}
+
+		streamOptions := options.ChangeStream().SetFullDocument(options.UpdateLookup)
+		cs, err := sc.db.Collection("users").Watch(sc.ctx, pipeline, streamOptions)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		defer cs.Close(sc.ctx)
+
+		for cs.Next(sc.ctx) {
+			var user models.User
+			// if err := cs.Decode(&changeDoc); err != nil {
+			// 	log.Printf("error decoding: %s", err)
+			// }
+			err := bson.Unmarshal(cs.Current.Lookup("fullDocument").Value, &user)
+			if err != nil {
+				log.Println(err)
+			}
+			if _, ok := sockets[cookie.Value]; ok {
+				for _, val := range user.Devices {
+					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
+						mu.Lock()
+						devices[val.(primitive.ObjectID).Hex()]--
+						if devices[val.(primitive.ObjectID).Hex()] <= 0 {
+							delete(devices, val.(primitive.ObjectID).Hex())
+						}
+						mu.Unlock()
+					}
+
+					// if _, ok := sockets[cookie.Value]; ok {
+					// 	mu.Lock()
+					// 	delete(sockets, cookie.Value)
+					// 	mu.Unlock()
+					// }
+				}
+
+				for _, val := range user.Devices {
+					// if _, ok := sockets[cookie.Value]; !ok {
+					mu.Lock()
+					devices[val.(primitive.ObjectID).Hex()]++
+					mu.Unlock()
+					go sc.getResources(val.(primitive.ObjectID).Hex())
+					// }
+				}
+				mu.Lock()
+				sockets[cookie.Value] = socketConn{sockets[cookie.Value].conn, sockets[cookie.Value].header, user.Devices}
+				mu.Unlock()
+			}
+
+		}
+	}()
 
 	go func() {
 		defer conn.Close()

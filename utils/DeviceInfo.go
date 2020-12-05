@@ -130,6 +130,9 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 			sshConn[deviceIP], err = createConn(username, pass, deviceIP)
 			mu.Unlock()
 			if err != nil {
+				mu.Lock()
+				delete(sshConn, deviceIP)
+				mu.Unlock()
 				return "0", err
 			}
 			sess, err = sshConn[deviceIP].NewSession()
@@ -171,6 +174,9 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 	sshConn[deviceIP], err = createConn(username, pass, deviceIP)
 	mu.Unlock()
 	if err != nil {
+		mu.Lock()
+		delete(sshConn, deviceIP)
+		mu.Unlock()
 		return "0", err
 	}
 	sess, err := sshConn[deviceIP].NewSession()
