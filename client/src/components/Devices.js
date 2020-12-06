@@ -1,6 +1,21 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux";
-import { Container, Header, Content, Table, Popover, Whisper, Checkbox, Dropdown, IconButton, Icon, Divider, Progress, Button } from 'rsuite';
+import { Container, 
+  Header, 
+  Content, 
+  Table, 
+  Popover, 
+  Whisper, 
+  Checkbox, 
+  Dropdown, 
+  IconButton, 
+  Icon, 
+  Divider, 
+  Progress, 
+  Button,
+  InputGroup,
+  Input
+} from 'rsuite';
 import { fetchDevices, deleteDevices } from "../actions";
 import ModalForm from "./modalForm";
 const { Line } = Progress;
@@ -8,27 +23,27 @@ const { Cell, Column, HeaderCell } = Table;
 
 const NameCell = ({ rowData, dataKey, ...props }) => {
   const speaker = (
-    <Popover title="Description">
-      <p>
-        <b>Hostname:</b> {`${rowData.hostName}`}{' '}
-      </p>
-      <p>
-        <b>IPAddress:</b> {rowData.ipAddress}{' '}
-      </p>
-      <p>
-        <b>Type:</b> {rowData.type}{' '}
-      </p>
-      <p>
-        <b>Vendor:</b> {rowData.vendor}{' '}
-      </p>
-      <p>
-        <b>Model:</b> {rowData.model}{' '}
-      </p>
-      <p>
-        <b>Version:</b> {rowData.version}{' '}
-      </p>
-    </Popover>
-  );
+  <Popover title="Description">
+    <p>
+      <b>Hostname:</b> {`${rowData.hostName}`}{' '}
+    </p>
+    <p>
+      <b>IPAddress:</b> {rowData.ipAddress}{' '}
+    </p>
+    <p>
+      <b>Type:</b> {rowData.type}{' '}
+    </p>
+    <p>
+      <b>Vendor:</b> {rowData.vendor}{' '}
+    </p>
+    <p>
+      <b>Model:</b> {rowData.model}{' '}
+    </p>
+    <p>
+      <b>Version:</b> {rowData.version}{' '}
+    </p>
+  </Popover>
+);
 
   return (
     <Cell {...props}>
@@ -359,6 +374,9 @@ class Devices extends Component{
   
   constructor(props) {
     super(props);
+    this.state = {
+      ipf: ""
+    }
     this.child = React.createRef();
   }
   
@@ -373,26 +391,36 @@ class Devices extends Component{
   }
 
   render() {
-      console.log(this.props.devices)
+      const { data } = this.props.devices;
       return (
           <Container>
-              <Header style={{ marginLeft: '2em', marginTop: '1em'}} className="flex-container">
-                  <div>
+              <Header style={{ marginLeft: '2em', marginTop: '1em', marginRight: '2em'}} className="flex-container">
+                  <div style={{display: "flex", justifyContent: "flex-start"}}>
+                    <div>
                     <ModalForm>Add Device</ModalForm>
+                    </div>
+                    <div>
+                    <Button style={{ marginLeft: "10px"}} onClick={this.onDeleteClick}>Delete Selected</Button>
+                    </div>
                   </div>
                   <div>
-                    <Button style={{ marginLeft: "10px"}} onClick={this.onDeleteClick}>Delete Selected</Button>
+                    <InputGroup inside style={{width: 250}}>
+                      <Input placeholder="Search for IP..." value={this.state.ipf} onChange={(val) => this.setState({ipf: val})}/>
+                      <InputGroup.Addon>
+                        <Icon icon="search"/>
+                      </InputGroup.Addon>
+                    </InputGroup>
                   </div>
               </Header>
               <Content style={{ marginLeft: '2em', marginTop: '1em'}}>
-                {this.props.devices.data ? <CustomColumnTable ref={this.child} data={this.props.devices.data}></CustomColumnTable> : ''}
+                {data ? <CustomColumnTable ref={this.child} data={this.state.ipf ? data.filter((device) => device.ipAddress.includes(this.state.ipf)): data}></CustomColumnTable> : ''}
               </Content>
           </Container>
       );
   }
 }
 
-const mapStateToProps = ({ devices, status }) => {
+const mapStateToProps = ({ devices, status }, ) => {
     const { data } = devices;
     if(data && status.data) {
       devices.data = data.map((device) => {

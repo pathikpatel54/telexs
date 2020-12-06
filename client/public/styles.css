@@ -1,16 +1,18 @@
 *{
-    border-radius: 0em !important;
-    font-family: Lato;
+  border-radius: 0em !important;
+  font-family: Lato;
 }
+
 .navbar-brand {
-    padding: 18px 20px;
-    display: inline-block;
+  padding: 18px 20px;
+  display: inline-block;
 }
 
 .flex-container {
-    display: flex;
-  }
+  display: flex;
+  justify-content: space-between;
+}
   
-  .flex-container > div {
-    align-items: flex-end;
-  }
+.flex-container > div {
+  align-items: flex-end;
+}

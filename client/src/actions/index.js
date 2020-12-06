@@ -70,6 +70,7 @@ export const addDevices = (data) => async dispatch => {
 export const socketSub = (socket) => async dispatch => {
     socketStore = socket;
     socketStore.onopen = () => {
+        count = 0;
         socketStore.send(JSON.stringify({ eventName: "subscribe" }));
     }
 
