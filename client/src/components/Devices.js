@@ -14,7 +14,9 @@ import { Container,
   Progress, 
   Button,
   InputGroup,
-  Input
+  Input,
+  Navbar,
+  Nav
 } from 'rsuite';
 import { fetchDevices, deleteDevices } from "../actions";
 import ModalForm from "./modalForm";
@@ -292,14 +294,14 @@ class CustomColumnTable extends React.Component {
     return (
       <div>
         <Table  
-          height={window.innerHeight - 100}
+          height={window.innerHeight - 153}
           style={{marginRight: '25px', marginBottom: '20px'}}
           data={data}
           id="table"
           bodyRef={ref => {
             tableBody = ref;
           }}
-          headerHeight={50}
+          headerHeight={45}
           shouldUpdateScroll={false}
         >
           <Column width={50} align="center">
@@ -321,47 +323,47 @@ class CustomColumnTable extends React.Component {
           </Column>
 
           <Column width={160} align="center">
-            <HeaderCell style={{ fontSize: '17px'}}>Status</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Health</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="status" />
           </Column>
 
           <Column width={160} align="center">
-            <HeaderCell style={{ fontSize: '17px'}}>CPU</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>CPU</HeaderCell>
             <CpuCell style={{paddingTop: "3px"}} dataKey="status" />
           </Column>
 
           <Column width={160} align="center">
-            <HeaderCell style={{ fontSize: '17px'}}>Memory</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Memory</HeaderCell>
             <MemCell style={{paddingTop: "3px"}} dataKey="status" />
           </Column>
 
           <Column width={160}>
-            <HeaderCell style={{ fontSize: '17px'}}>Hostname</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Hostname</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="hostName" />
           </Column>
 
           <Column width={160}>
-            <HeaderCell style={{ fontSize: '17px'}}>Type</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Type</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="type" />
           </Column>
 
           <Column width={160}>
-            <HeaderCell style={{ fontSize: '17px'}}>Vendor</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Vendor</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="vendor" />
           </Column>
 
           <Column width={160}>
-            <HeaderCell style={{ fontSize: '17px'}}>Model</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Model</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="model" />
           </Column>
 
           <Column width={160}>
-            <HeaderCell style={{ fontSize: '17px'}}>Version</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Version</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="version" />
           </Column>
 
           <Column width={200}>
-            <HeaderCell style={{ fontSize: '17px'}}>Action</HeaderCell>
+            <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
             <ActionCell style={{paddingTop: "5px"}} dataKey="objectID" />
           </Column>
         </Table>
@@ -394,27 +396,47 @@ class Devices extends Component{
       const { data } = this.props.devices;
       return (
           <Container>
-              <Header style={{ marginLeft: '2em', marginTop: '1em', marginRight: '2em'}} className="flex-container">
-                  <div style={{display: "flex", justifyContent: "flex-start"}}>
-                    <div>
-                    <ModalForm>Add Device</ModalForm>
-                    </div>
-                    <div>
-                    <Button style={{ marginLeft: "10px"}} onClick={this.onDeleteClick}>Delete Selected</Button>
-                    </div>
+            <Navbar appearance="inverse">
+              <Navbar.Header>
+                <a href="#" className="navbar-brand logo">Firewalls</a>
+              </Navbar.Header>
+              <Navbar.Body>
+                <Nav>
+                  {/* <Nav.Item icon={<Icon icon="home" />} >Home</Nav.Item> */}
+                  {/* <Nav.Item>Add</Nav.Item>
+                  <Nav.Item>Delete</Nav.Item> */}
+                  {/* <Dropdown title="About">
+                    <Dropdown.Item>Company</Dropdown.Item>
+                    <Dropdown.Item>Team</Dropdown.Item>
+                    <Dropdown.Item>Contact</Dropdown.Item>
+                  </Dropdown> */}
+                </Nav>
+                <Nav pullRight>
+                  <Nav.Item icon={<Icon icon="cog" />} >Settings</Nav.Item>
+                </Nav>
+              </Navbar.Body>
+            </Navbar>
+            <Header style={{ marginLeft: '2em', marginTop: '1.5em', marginRight: '2em'}} className="flex-container">
+                <div style={{display: "flex", justifyContent: "flex-start"}}>
+                  <div>
+                  <ModalForm>Add Device</ModalForm>
                   </div>
                   <div>
-                    <InputGroup inside style={{width: 250}}>
-                      <Input placeholder="Search for IP..." value={this.state.ipf} onChange={(val) => this.setState({ipf: val})}/>
-                      <InputGroup.Addon>
-                        <Icon icon="search"/>
-                      </InputGroup.Addon>
-                    </InputGroup>
+                  <Button style={{ marginLeft: "10px"}} onClick={this.onDeleteClick}>Delete Selected</Button>
                   </div>
-              </Header>
-              <Content style={{ marginLeft: '2em', marginTop: '1em'}}>
-                {data ? <CustomColumnTable ref={this.child} data={this.state.ipf ? data.filter((device) => device.ipAddress.includes(this.state.ipf)): data}></CustomColumnTable> : ''}
-              </Content>
+                </div>
+                <div>
+                  <InputGroup inside style={{width: 250}}>
+                    <Input placeholder="Search for IP..." value={this.state.ipf} onChange={(val) => this.setState({ipf: val})}/>
+                    <InputGroup.Addon>
+                      <Icon icon="search"/>
+                    </InputGroup.Addon>
+                  </InputGroup>
+                </div>
+            </Header>
+            <Content style={{ marginLeft: '2em', marginTop: '1em'}}>
+              {data ? <CustomColumnTable ref={this.child} data={this.state.ipf ? data.filter((device) => device.ipAddress.includes(this.state.ipf)): data}></CustomColumnTable> : ''}
+            </Content>
           </Container>
       );
   }
