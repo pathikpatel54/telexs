@@ -13,7 +13,10 @@ import {
     CLEAR_ERROR,
     DELETE_DEVICES,
     DELETE_DEVICES_SUCCESS,
-    DELETE_DEVICES_ERROR
+    DELETE_DEVICES_ERROR,
+    MODIFY_DEVICE,
+    MODIFY_DEVICE_SUCCESS,
+    MODIFY_DEVICE_ERROR
 } from "./types";
 let count = 0;
 let socketStore;
@@ -61,9 +64,19 @@ export const addDevices = (data) => async dispatch => {
     try{
         const response = await axios.post("/api/devices", data);
         // socketStore.send(JSON.stringify({ eventName: "addDevice" }))
-        return dispatch({ type: ADD_DEVICES_SUCCESS, payload: response.data });
+        return dispatch({ type: ADD_DEVICES_SUCCESS, payload: data });
     } catch(e) {
         return dispatch({ type: ADD_DEVICES_ERROR, payload: e });
+    }
+}
+
+export const modifyDevices = (data) => async dispatch => {
+    dispatch({ type: MODIFY_DEVICE });
+    try {
+        const response = await axios.put(`/api/device/${data.objectID}`, data);
+        return dispatch({ type: MODIFY_DEVICE_SUCCESS, payload: data});
+    } catch(e) {
+        return dispatch({ type: MODIFY_DEVICE_ERROR, payload: e});
     }
 }
 

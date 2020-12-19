@@ -1,4 +1,4 @@
-import { ADD_DEVICES_ERROR, ADD_DEVICES_SUCCESS, CLEAR_ERROR, DELETE_DEVICES, DELETE_DEVICES_SUCCESS, FETCH_DEVICES, FETCH_DEVICES_ERROR, FETCH_DEVICES_SUCCESS } from "../actions/types";
+import { ADD_DEVICES_ERROR, ADD_DEVICES_SUCCESS, CLEAR_ERROR, DELETE_DEVICES, DELETE_DEVICES_SUCCESS, FETCH_DEVICES, FETCH_DEVICES_ERROR, FETCH_DEVICES_SUCCESS, MODIFY_DEVICE_SUCCESS } from "../actions/types";
 
 const INITIAL_STATE = {
     data: null,
@@ -31,6 +31,16 @@ export default (state=INITIAL_STATE, action) => {
                 return { ...state, loading: false, error: "Device Already Exists in database...Adding it to your list.", data: state.data.concat(action.payload.response.data) }
             }
             return { ...state, loading: false, error: action.payload };
+
+        case MODIFY_DEVICE_SUCCESS:
+            const modifiedData = state.data.map((device) => {
+                if (device.objectID === action.payload.objectID) {
+                    return action.payload;
+                }
+                return device;
+            });
+            console.log(modifiedData);
+            return {...state, data: modifiedData, error: null };
         case DELETE_DEVICES_SUCCESS:
             return { ...state, loading: false, error: null, data: state.data.filter((device) => !action.payload.includes(device.objectID))}
         case CLEAR_ERROR:

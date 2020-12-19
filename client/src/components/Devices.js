@@ -19,9 +19,12 @@ import { Container,
   Nav
 } from 'rsuite';
 import { fetchDevices, deleteDevices } from "../actions";
+import HeaderBar from "./Header";
 import ModalForm from "./modalForm";
+
 const { Line } = Progress;
 const { Cell, Column, HeaderCell } = Table;
+
 
 const NameCell = ({ rowData, dataKey, ...props }) => {
   const speaker = (
@@ -224,8 +227,8 @@ class CustomWhisper extends React.Component {
 }
 
 const ActionCell = ({ rowData, dataKey, ...props }) => {
-  function handleAction() {
-    alert(`id:${rowData[dataKey]}`);
+  const handleAction = () => {
+    props.onEdit(rowData);
   }
   return (
     <Cell {...props} className="link-group">
@@ -294,7 +297,7 @@ class CustomColumnTable extends React.Component {
     return (
       <div>
         <Table  
-          height={window.innerHeight - 153}
+          height={window.innerHeight - 151}
           style={{marginRight: '25px', marginBottom: '20px'}}
           data={data}
           id="table"
@@ -364,7 +367,7 @@ class CustomColumnTable extends React.Component {
 
           <Column width={200}>
             <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
-            <ActionCell style={{paddingTop: "5px"}} dataKey="objectID" />
+            <ActionCell onEdit={(data) => this.props.setSelected(data)} style={{paddingTop: "5px"}} dataKey="objectID" />
           </Column>
         </Table>
       </div>
@@ -377,7 +380,8 @@ class Devices extends Component{
   constructor(props) {
     super(props);
     this.state = {
-      ipf: ""
+      ipf: "",
+      selected: null
     }
     this.child = React.createRef();
   }
@@ -392,34 +396,19 @@ class Devices extends Component{
     this.child.current.removeChecked();
   }
 
+  handleEdit = (data) => {
+    this.setState({selected: data});
+  }
+
   render() {
       const { data } = this.props.devices;
       return (
           <Container>
-            <Navbar appearance="inverse">
-              <Navbar.Header>
-                <a href="#" className="navbar-brand logo">Firewalls</a>
-              </Navbar.Header>
-              <Navbar.Body>
-                <Nav>
-                  {/* <Nav.Item icon={<Icon icon="home" />} >Home</Nav.Item> */}
-                  {/* <Nav.Item>Add</Nav.Item>
-                  <Nav.Item>Delete</Nav.Item> */}
-                  {/* <Dropdown title="About">
-                    <Dropdown.Item>Company</Dropdown.Item>
-                    <Dropdown.Item>Team</Dropdown.Item>
-                    <Dropdown.Item>Contact</Dropdown.Item>
-                  </Dropdown> */}
-                </Nav>
-                <Nav pullRight>
-                  <Nav.Item icon={<Icon icon="cog" />} >Settings</Nav.Item>
-                </Nav>
-              </Navbar.Body>
-            </Navbar>
+            <HeaderBar>Firewall</HeaderBar>
             <Header style={{ marginLeft: '2em', marginTop: '1.5em', marginRight: '2em'}} className="flex-container">
                 <div style={{display: "flex", justifyContent: "flex-start"}}>
                   <div>
-                  <ModalForm>Add Device</ModalForm>
+                  <ModalForm selected={this.state.selected} resetSelected={() => this.setState({ selected: null})}>Add Device</ModalForm>
                   </div>
                   <div>
                   <Button style={{ marginLeft: "10px"}} onClick={this.onDeleteClick}>Delete Selected</Button>
@@ -435,7 +424,7 @@ class Devices extends Component{
                 </div>
             </Header>
             <Content style={{ marginLeft: '2em', marginTop: '1em'}}>
-              {data ? <CustomColumnTable ref={this.child} data={this.state.ipf ? data.filter((device) => device.ipAddress.includes(this.state.ipf)): data}></CustomColumnTable> : ''}
+              {data ? <CustomColumnTable setSelected={(data) => this.handleEdit(data)} ref={this.child} data={this.state.ipf ? data.filter((device) => device.ipAddress.includes(this.state.ipf)): data}></CustomColumnTable> : ''}
             </Content>
           </Container>
       );

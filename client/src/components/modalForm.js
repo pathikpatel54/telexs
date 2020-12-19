@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import { Form, FormGroup, FormControl, ControlLabel, InputPicker,Modal, Button, DatePicker, Alert } from 'rsuite';
+import { Form, FormGroup, FormControl, ControlLabel, InputPicker,Modal, Button, DatePicker, Alert, Icon, IconButton } from 'rsuite';
 import { connect } from 'react-redux';
 import { Field, reduxForm } from 'redux-form';
-import { addDevices, clearError } from '../actions'
+import { addDevices, modifyDevices, clearError } from '../actions'
 
 const styles = { display: 'block', marginBottom: 10 };
 const typeData = [
@@ -132,27 +132,38 @@ class ModalForm extends Component {
         show: false
       };
       this.close = this.close.bind(this);
-      this.open = this.open.bind(this);
       this.submit = this.submit.bind(this);
+      this.showForm = this.showForm.bind(this);
     }
+    
     shouldComponentUpdate(nextProps, nextState){
       return (nextProps.form !== this.props.form) ||
       (nextProps.submitting !== this.props.submitting) ||
-      (nextProps.reset !== this.props.reset) || 
-      (nextProps.pristine !== this.props.pristine) || 
-      (nextProps.devices.error !== this.props.devices.error) || 
+      (nextProps.reset !== this.props.reset) ||
+      (nextProps.pristine !== this.props.pristine) ||
+      (nextProps.devices.error !== this.props.devices.error) ||
       (nextState !== this.state) ;
     }
-    close() {
+
+    close = () => {
       this.props.reset();
       this.setState({ show: false });
+      this.props.resetSelected();
     }
-    open() {
+
+    showForm = () => {
       this.setState({ show: true });
     }
 
     submit(values) {
-      this.props.addDevices(values)
+      if(this.props.selected) {
+        this.props.modifyDevices(values);
+        this.props.reset();
+        this.setState({ show: false });
+        this.props.resetSelected()
+      } else {
+        this.props.addDevices(values);
+      }
     }
 
     renderNotifications = (err) => {
@@ -165,9 +176,9 @@ class ModalForm extends Component {
       const { handleSubmit, pristine, submitting} = this.props;
       return (
         <div>
-          <Modal show={this.state.show} onHide={this.close} size="xs">
+          <Modal show={this.state.show || this.props.selected} onHide={this.close} size="xs">
             <Modal.Header>
-              <Modal.Title>{this.props.children}</Modal.Title>
+              <Modal.Title>{this.props.selected ? "Modify Device" : this.props.children}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
               <Form
@@ -187,7 +198,7 @@ class ModalForm extends Component {
                     <Field  name="ipAddress" label="IP Address" component={renderField} />
                   </div>
                   <div style={{marginRight: '0px'}}> */}
-                    <Field  name="hostname" label="Hostname" component={renderField} placeholder="e.g. hostname.domain.com" />
+                    <Field  name="hostName" label="Hostname" component={renderField} placeholder="e.g. hostname.domain.com" />
                   {/* </div>
                 </div> */}
                 {/* <FormGroup>
@@ -247,20 +258,29 @@ class ModalForm extends Component {
               </Button>
             </Modal.Footer>
             
-          </Modal>
-          <Button onClick={this.open} >{this.props.children}</Button>
+          </Modal>{
+            this.props.icon ? <IconButton
+            appearance="subtle"
+            onClick={this.showForm}
+            icon={<Icon icon="edit2" />}
+          /> :
+            <Button onClick={this.showForm} >{this.props.children}</Button>
+          }
+          
           {this.renderNotifications(this.props.devices.error)}
         </div>
       );
     }
   }
 
-const mapStateToProps = ({ devices }) => {
-  return { devices };
+const mapStateToProps = ({ devices }, ownProps) => {
+  console.log(ownProps.selected);
+  return { devices, initialValues: ownProps.selected };
 }
 
- export default connect(mapStateToProps, { addDevices, clearError })(reduxForm({
+ export default connect(mapStateToProps, { addDevices, modifyDevices, clearError })(reduxForm({
     form: 'DeviceForm', // a unique identifier for this form
     validate, // <--- validation function given to redux-form
+    enableReinitialize: true
     // warn // <--- warning function given to redux-form
   })(ModalForm))

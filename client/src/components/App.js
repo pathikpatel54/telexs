@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { fetchUser, socketSub } from "../actions";
 import { Container } from 'rsuite'
 
-import Head from "./Header";
+import Head from "./NavBar";
 import Landing from "./Landing";
 import Devices from "./Devices";
 
