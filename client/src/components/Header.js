@@ -30,9 +30,9 @@ const Header = (props) => {
                     <Dropdown title={auth.data.name}>
                         <Dropdown.Item>Help</Dropdown.Item>
                         <Dropdown.Item>Settings</Dropdown.Item>
-                        <Dropdown.Item><a href='/api/logout'>Sign Out</a></Dropdown.Item>
+                        <Dropdown.Item onClick={() => window.location = '/api/logout'}>Sign Out</Dropdown.Item>
                     </Dropdown>
-                : auth.loading ? <Loader /> : <Nav.Item onClick={() => window.location = '/auth/google'}>
+                : auth.loading ? <Nav.Item><Loader /></Nav.Item> : <Nav.Item onClick={() => window.location = '/auth/google'}>
                     Login with Google
                 </Nav.Item>
                 }

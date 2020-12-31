@@ -14,9 +14,7 @@ import { Container,
   Progress, 
   Button,
   InputGroup,
-  Input,
-  Navbar,
-  Nav
+  Input
 } from 'rsuite';
 import { fetchDevices, deleteDevices } from "../actions";
 import HeaderBar from "./Header";
@@ -306,6 +304,7 @@ class CustomColumnTable extends React.Component {
           }}
           headerHeight={45}
           shouldUpdateScroll={false}
+          translate3d={false}
         >
           <Column width={50} align="center">
             <HeaderCell style={{ padding: 0, fontSize: '17px' }}>
@@ -402,6 +401,7 @@ class Devices extends Component{
 
   render() {
       const { data } = this.props.devices;
+      console.log(data)
       return (
           <Container>
             <HeaderBar>Firewall</HeaderBar>

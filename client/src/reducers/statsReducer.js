@@ -9,6 +9,7 @@ const INITIAL_STATE = {
 export default (state=INITIAL_STATE, action) => {
     switch(action.type) {
         case CHANGE_DEVICE_STATUS:
+            console.log(action.payload)
             return { ...state, loading: false, error: false, data: action.payload };
         default:
             return state;

@@ -23,7 +23,7 @@ const NavToggle = ({ expand, onChange, auth }) => {
   return (
     <Navbar appearance="default" className="nav-toggle">
       <Navbar.Body>
-        <Nav>
+        {/* <Nav>
           {auth.data ? 
             <Dropdown
             placement="topStart"
@@ -43,7 +43,7 @@ const NavToggle = ({ expand, onChange, auth }) => {
           }
           
           
-        </Nav>
+        </Nav> */}
         <Nav pullRight>
           <Nav.Item onClick={onChange} style={{ width: 56, textAlign: 'center' }}>
             <Icon icon={expand ? 'angle-left' : 'angle-right'} />
@@ -95,8 +95,8 @@ class Head extends Component {
           >
             <Sidenav.Header>
               <div style={headerStyles}>
-                <Icon icon="logo-analytics" size="lg" style={{ verticalAlign: 0 }} />
-                <span style={{ marginLeft: 15 }}> Telexs</span>
+                <Icon icon="logo-analytics" size="lg" style={{ verticalAlign: 0, marginRight:"5px" }} />
+                <span>TELEXS</span>
               </div>
             </Sidenav.Header>
             <Sidenav

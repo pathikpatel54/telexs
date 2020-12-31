@@ -64,7 +64,7 @@ export const addDevices = (data) => async dispatch => {
     try{
         const response = await axios.post("/api/devices", data);
         // socketStore.send(JSON.stringify({ eventName: "addDevice" }))
-        return dispatch({ type: ADD_DEVICES_SUCCESS, payload: data });
+        return dispatch({ type: ADD_DEVICES_SUCCESS, payload: {...data, objectID: response.data.objectID } });
     } catch(e) {
         return dispatch({ type: ADD_DEVICES_ERROR, payload: e });
     }

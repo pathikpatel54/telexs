@@ -163,6 +163,9 @@ class ModalForm extends Component {
         this.props.resetSelected()
       } else {
         this.props.addDevices(values);
+        this.props.reset();
+        this.setState({ show: false });
+        this.props.resetSelected()
       }
     }
 
