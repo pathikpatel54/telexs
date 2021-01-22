@@ -11,6 +11,7 @@ type vars struct {
 	MongodbUser        string
 	PaloAltoURI        string
 	PaloAltoKey        string
+	DeviceKey          string
 }
 
 //Keys contains evironment variables

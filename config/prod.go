@@ -10,4 +10,5 @@ var prodKeys = vars{
 	MongodbUser:        os.Getenv("MONGODB_USER"),
 	PaloAltoURI:        os.Getenv("PALOALTO_URI"),
 	PaloAltoKey:        os.Getenv("PALOALTO_KEY"),
+	DeviceKey:          os.Getenv("DEVICE_KEY"),
 }

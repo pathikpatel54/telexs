@@ -96,8 +96,9 @@ func (sc SocketController) CheckDeviceStatus(w http.ResponseWriter, r *http.Requ
 			if err != nil {
 				log.Println(err)
 			}
+			fmt.Println(user)
 			if _, ok := sockets[cookie.Value]; ok {
-				for _, val := range user.Devices {
+				for _, val := range sockets[cookie.Value].devices {
 					if _, ok := devices[val.(primitive.ObjectID).Hex()]; ok {
 						mu.Lock()
 						devices[val.(primitive.ObjectID).Hex()]--
@@ -283,6 +284,7 @@ func (sc SocketController) ValidateDevice() {
 					// 	ticker = time.NewTicker(1 * time.Minute)
 					// 	counter++
 					// }
+					fmt.Println(device)
 					go sc.getResources(device)
 				}
 			case <-quit:
@@ -325,6 +327,8 @@ func (sc SocketController) getResources(device string) {
 	result := sc.db.Collection("devices").FindOne(sc.ctx, bson.M{"_id": ID})
 	result.Decode(&resultDevice)
 
+	// pass, err := utils.Decrypt([]byte(config.Keys.DeviceKey), []byte(resultDevice.Password))
+	// fmt.Println(string(pass))
 	if _, err := net.DialTimeout("tcp",
 		resultDevice.IPAddress+":"+resultDevice.Port, 1*time.Second); err != nil {
 		mu.Lock()

@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Form, FormGroup, FormControl, ControlLabel, InputPicker,Modal, Button, DatePicker, Alert, Icon, IconButton } from 'rsuite';
+import { Form, FormGroup, FormControl, ControlLabel, InputPicker,Modal, Button, DatePicker, Alert, Icon, IconButton, Loader } from 'rsuite';
 import { connect } from 'react-redux';
 import { Field, reduxForm } from 'redux-form';
 import { addDevices, modifyDevices, clearError } from '../actions'
@@ -53,7 +53,7 @@ const renderField = ({
 }) => {
 
   return (
-    <FormGroup>
+    <FormGroup style={{ marginBottom: '15px'}}>
       <ControlLabel>{label}</ControlLabel>
       <FormControl {...input} name={name} type={type} style={style} accepter={accepter} placeholder={placeholder}/>
       {touched &&
@@ -129,21 +129,25 @@ class ModalForm extends Component {
     constructor(props) {
       super(props);
       this.state = {
-        show: false
+        show: false,
+        notification: false
       };
       this.close = this.close.bind(this);
       this.submit = this.submit.bind(this);
       this.showForm = this.showForm.bind(this);
     }
     
-    shouldComponentUpdate(nextProps, nextState){
-      return (nextProps.form !== this.props.form) ||
-      (nextProps.submitting !== this.props.submitting) ||
-      (nextProps.reset !== this.props.reset) ||
-      (nextProps.pristine !== this.props.pristine) ||
-      (nextProps.devices.error !== this.props.devices.error) ||
-      (nextState !== this.state) ;
-    }
+    // shouldComponentUpdate(nextProps, nextState){
+    //   return (
+    //   (nextProps.selected !== this.props.selected) ||
+    //   // (nextProps.form !== this.props.form) ||
+    //   (nextProps.submitting !== this.props.submitting) ||
+    //   // (nextProps.reset !== this.props.reset) ||
+    //   (nextProps.pristine !== this.props.pristine) ||
+    //   (nextProps.devices.adding !== this.props.devices.adding) ||
+    //   (nextProps.devices.error !== this.props.devices.error) ||
+    //   (nextState !== this.state)) ;
+    // }
 
     close = () => {
       this.props.reset();
@@ -155,28 +159,61 @@ class ModalForm extends Component {
       this.setState({ show: true });
     }
 
-    submit(values) {
+    async submit(values) {
       if(this.props.selected) {
-        this.props.modifyDevices(values);
-        this.props.reset();
-        this.setState({ show: false });
-        this.props.resetSelected()
+        Alert.info(<Loader content="Modifying Device..." />)
+        await this.props.modifyDevices(values);
+        if (!this.props.devices.adding && !this.props.devices.error) {
+          Alert.close();
+          Alert.success("Device Modified Successfully.", 5000);
+          this.close();
+          return
+        } else if(this.props.devices.error) {
+          if (typeof this.props.devices.error === 'string') {
+            if(!this.state.notification) {
+              Alert.closeAll();
+              Alert.error(this.props.devices.error, 5000, () => {this.props.clearError(); this.setState({notification: false})});
+              this.setState({notification: true});
+            }
+          }
+        }
+        this.close();
+        return
       } else {
-        this.props.addDevices(values);
-        this.props.reset();
-        this.setState({ show: false });
-        this.props.resetSelected()
+        Alert.info(<Loader content="Adding Device..." />)
+        await this.props.addDevices(values);
+        if (!this.props.devices.adding && !this.props.devices.error) {
+          Alert.close();
+          Alert.success("Device Added Successfully.", 5000);
+          this.close();
+          return
+        } else if(this.props.devices.error) {
+          if (typeof this.props.devices.error === 'string') {
+            if(!this.state.notification) {
+              Alert.closeAll();
+              Alert.error(this.props.devices.error, 5000, () => {this.props.clearError(); this.setState({notification: false})});
+              this.setState({notification: true});
+            }
+          }
+        }
+        this.close();
+        return
       }
     }
 
-    renderNotifications = (err) => {
-      if (typeof err === 'string') {
-        Alert.error(err, 5000, () => {this.props.clearError()})
-      }
-    }
+    // renderNotifications = (err) => {
+    //   if (typeof err === 'string') {
+    //     if(!this.state.notification) {
+    //       Alert.closeAll();
+    //       Alert.error(err, 5000, () => {this.props.clearError(); this.setState({notification: false})});
+    //       this.setState({notification: true});
+    //     }
+    //   }
+    // }
 
     render() {
       const { handleSubmit, pristine, submitting} = this.props;
+      
       return (
         <div>
           <Modal show={this.state.show || this.props.selected} onHide={this.close} size="xs">
@@ -188,7 +225,7 @@ class ModalForm extends Component {
                 fluid
                 
               >
-                <div className="flex-container" style={{ marginBottom: '15px'}}>
+                <div className="flex-container">
                   <div style={{marginRight: '10px'}}>
                     <Field  name="ipAddress" label="IP Address" component={renderField} placeholder="x.x.x.x" />
                   </div>
@@ -208,6 +245,15 @@ class ModalForm extends Component {
                   <ControlLabel>IP Address</ControlLabel>
                   <FormControl name="ipAddress" placeholder="Enter Device IP Address"/>
                 </FormGroup> */}
+                <div className="flex-container">
+                  <div style={{marginRight: '10px'}}>
+                    <Field  name="user" label="Admin Username" component={renderField} placeholder="Username" />
+                  </div>
+                  <div style={{marginRight: '0px'}}>
+                    <Field  name="password" label="Password" component={renderField} placeholder="Password" />
+                  </div>
+                </div>
+
                 <div className="flex-container" style={{ marginBottom: '15px'}}>
                   <div style={{marginRight: '10px'}}>
                   <Field  name="type" label="Type" component={renderPicker} data={typeData}/>
@@ -270,7 +316,7 @@ class ModalForm extends Component {
             <Button onClick={this.showForm} >{this.props.children}</Button>
           }
           
-          {this.renderNotifications(this.props.devices.error)}
+          {/* {this.renderNotifications(this.props.devices.error)} */}
         </div>
       );
     }

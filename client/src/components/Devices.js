@@ -306,7 +306,7 @@ class CustomColumnTable extends React.Component {
           shouldUpdateScroll={false}
           translate3d={false}
         >
-          <Column width={50} align="center">
+          <Column resizable={true} width={50} align="center">
             <HeaderCell style={{ padding: 0, fontSize: '17px' }}>
               <div style={{ lineHeight: '40px' }}>
                 <Checkbox
@@ -324,47 +324,47 @@ class CustomColumnTable extends React.Component {
             />
           </Column>
 
-          <Column width={160} align="center">
+          <Column resizable={true} width={100} align="center">
             <HeaderCell style={{ fontSize: '15px'}}>Health</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="status" />
           </Column>
 
-          <Column width={160} align="center">
+          <Column resizable={true} width={170} align="center">
             <HeaderCell style={{ fontSize: '15px'}}>CPU</HeaderCell>
             <CpuCell style={{paddingTop: "3px"}} dataKey="status" />
           </Column>
 
-          <Column width={160} align="center">
+          <Column resizable={true} width={170} align="center">
             <HeaderCell style={{ fontSize: '15px'}}>Memory</HeaderCell>
             <MemCell style={{paddingTop: "3px"}} dataKey="status" />
           </Column>
 
-          <Column width={160}>
+          <Column resizable={true} width={180}>
             <HeaderCell style={{ fontSize: '15px'}}>Hostname</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="hostName" />
           </Column>
 
-          <Column width={160}>
+          <Column resizable={true} width={130}>
             <HeaderCell style={{ fontSize: '15px'}}>Type</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="type" />
           </Column>
 
-          <Column width={160}>
+          <Column resizable={true} width={160}>
             <HeaderCell style={{ fontSize: '15px'}}>Vendor</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="vendor" />
           </Column>
 
-          <Column width={160}>
+          <Column resizable={true} width={130}>
             <HeaderCell style={{ fontSize: '15px'}}>Model</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="model" />
           </Column>
 
-          <Column width={160}>
+          <Column resizable={true} width={130}>
             <HeaderCell style={{ fontSize: '15px'}}>Version</HeaderCell>
             <NameCell style={{paddingTop: "10px"}} dataKey="version" />
           </Column>
 
-          <Column width={200}>
+          <Column resizable={true} width={150}>
             <HeaderCell style={{ fontSize: '15px'}}>Action</HeaderCell>
             <ActionCell onEdit={(data) => this.props.setSelected(data)} style={{paddingTop: "5px"}} dataKey="objectID" />
           </Column>

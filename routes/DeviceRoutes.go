@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"telexs/config"
 	"telexs/models"
+	"telexs/utils"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -38,23 +40,26 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 	var NewDevice, AddedDevice models.Device
 
 	err := json.NewDecoder(r.Body).Decode(&NewDevice)
+	encPass, err := utils.Encrypt([]byte(config.Keys.DeviceKey), []byte(NewDevice.Password))
 
+	if err != nil {
+		log.Println(err)
+	}
+
+	ctPassword := NewDevice.Password
+	NewDevice.Password = string(encPass)
 	NewDevice.ID = primitive.NewObjectIDFromTimestamp(time.Now())
-
-	// fmt.Println(NewDevice)
 
 	if err != nil {
 		log.Panic(err)
 	}
 
 	t := true
-
 	result := dc.db.Collection("devices").FindOneAndUpdate(dc.ctx, bson.M{"ipaddress": NewDevice.IPAddress}, bson.M{
 		"$setOnInsert": NewDevice,
 	}, &options.FindOneAndUpdateOptions{Upsert: &t})
 
 	result.Decode(&AddedDevice)
-	// fmt.Println(AddedDevice)
 
 	if AddedDevice.ID == primitive.NilObjectID {
 		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
@@ -66,18 +71,28 @@ func (dc DeviceController) AddDevice(w http.ResponseWriter, r *http.Request, _ h
 			log.Panic(err)
 		}
 		json.NewEncoder(w).Encode(&NewDevice)
-	} else {
-		_, err := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
+		return
+	}
+	devPass, err := utils.Decrypt([]byte(config.Keys.DeviceKey), []byte(AddedDevice.Password))
+	if err != nil {
+		log.Println(err)
+	}
+
+	if string(devPass) == ctPassword {
+		_, err1 := dc.db.Collection("users").UpdateOne(dc.ctx, bson.M{"_id": user.ID}, bson.M{"$addToSet": bson.M{
 			"devices": AddedDevice.ID,
 		},
 		})
 
-		if err != nil {
+		if err1 != nil {
 			log.Panic(err)
 		}
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(&AddedDevice)
+		return
 	}
+	w.WriteHeader(http.StatusUnauthorized)
+	return
 }
 
 //GetDevices route
@@ -101,12 +116,13 @@ func (dc DeviceController) GetDevices(w http.ResponseWriter, r *http.Request, _ 
 	for cur.Next(dc.ctx) {
 		var device = models.Device{}
 		cur.Decode(&device)
-
+		device.Password = ""
 		devices = append(devices, device)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&devices)
+	return
 }
 
 //ModifyDevice route
@@ -119,9 +135,23 @@ func (dc DeviceController) ModifyDevice(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	if !(utils.StringInSlice(p.ByName("id"), user.Devices)) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	var ModifiedDevice models.Device
 
 	json.NewDecoder(r.Body).Decode(&ModifiedDevice)
+
+	encPass, err := utils.Encrypt([]byte(config.Keys.DeviceKey), []byte(ModifiedDevice.Password))
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	ModifiedDevice.Password = string(encPass)
+
 	ModifiedDevice.ID = primitive.ObjectID{}
 
 	for _, ObjID := range user.Devices {
@@ -141,6 +171,7 @@ func (dc DeviceController) ModifyDevice(w http.ResponseWriter, r *http.Request, 
 	}
 
 	w.WriteHeader(http.StatusUnauthorized)
+	return
 }
 
 //DeleteDevice route
@@ -148,6 +179,11 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 	logged, user := isLoggedIn(w, r, dc.db)
 
 	if !logged {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if !(utils.StringInSlice(p.ByName("id"), user.Devices)) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -184,4 +220,5 @@ func (dc DeviceController) DeleteDevice(w http.ResponseWriter, r *http.Request, 
 	}
 
 	w.WriteHeader(http.StatusBadRequest)
+	return
 }

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"telexs/config"
 	"telexs/models"
 
 	"golang.org/x/crypto/ssh"
@@ -17,10 +18,17 @@ var (
 	mu      sync.Mutex
 )
 
+//GetDeviceCPU provides CPU of device
 func GetDeviceCPU(Device models.Device, c chan string) {
+	deviceUser := Device.User
+	bytePass, err := Decrypt([]byte(config.Keys.DeviceKey), []byte(Device.Password))
+	if err != nil {
+		fmt.Println(err)
+	}
+	devicePass := string(bytePass)
 	switch Device.Vendor {
-	case "PA":
-		CPU, err := writeConn(Device.IPAddress, "admin", "Panos@123", "show running resource-monitor second last 1")
+	case "PA", "PaloAlto":
+		CPU, err := WriteConn(Device.IPAddress, deviceUser, devicePass, "show running resource-monitor second last 1")
 		if err != nil {
 			log.Println(err)
 			c <- "0"
@@ -35,7 +43,7 @@ func GetDeviceCPU(Device models.Device, c chan string) {
 		c <- ""
 		return
 	case "Checkpoint", "CHECKPOINT", "checkpoint":
-		CPU, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf")
+		CPU, err := WriteConn(Device.IPAddress, deviceUser, devicePass, "cpstat os -f perf")
 		if err != nil {
 			log.Println(err)
 			c <- "0"
@@ -49,10 +57,17 @@ func GetDeviceCPU(Device models.Device, c chan string) {
 	}
 }
 
+//GetDeviceMemUp provides memory of device
 func GetDeviceMemUp(Device models.Device, c chan string) {
+	deviceUser := Device.User
+	bytePass, err := Decrypt([]byte(config.Keys.DeviceKey), []byte(Device.Password))
+	if err != nil {
+		fmt.Println(err)
+	}
+	devicePass := string(bytePass)
 	switch Device.Vendor {
-	case "PA":
-		Mem, err := writeConn(Device.IPAddress, "admin", "Panos@123", "show system resources")
+	case "PA", "PaloAlto":
+		Mem, err := WriteConn(Device.IPAddress, deviceUser, devicePass, "show system resources")
 		if err != nil {
 			log.Println(err)
 			c <- "0,0,0"
@@ -61,7 +76,7 @@ func GetDeviceMemUp(Device models.Device, c chan string) {
 		c <- between(Mem, "up ", ", ") + "," + strings.Split(after(Mem, "KiB Mem :"), " ")[1] + "," + between(Mem, "free, ", " used,")
 		return
 	case "Checkpoint", "CHECKPOINT", "checkpoint":
-		Mem, err := writeConn(Device.IPAddress, "admin", "admin123", "cpstat os -f perf\nuptime")
+		Mem, err := WriteConn(Device.IPAddress, deviceUser, devicePass, "cpstat os -f perf\nuptime")
 		if err != nil {
 			log.Println(err)
 			c <- "0,0,0"
@@ -116,12 +131,14 @@ func createConn(user string, pass string, host string) (*ssh.Client, error) {
 	}
 	conn, err := ssh.Dial("tcp", host+":22", config)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	return conn, err
 }
 
-func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
+//WriteConn writes a command over ssh connection
+func WriteConn(deviceIP string, username, pass, cmd string) (string, error) {
 	if _, ok := sshConn[deviceIP]; ok {
 		sess, err := sshConn[deviceIP].NewSession()
 		if err != nil {
@@ -133,18 +150,21 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 				mu.Lock()
 				delete(sshConn, deviceIP)
 				mu.Unlock()
+				log.Println(err)
 				return "0", err
 			}
 			sess, err = sshConn[deviceIP].NewSession()
 		}
 		if err != nil {
+			log.Println(err)
 			return "0", err
 		}
 		defer sess.Close()
 
 		stdin, err := sess.StdinPipe()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return "0", err
 		}
 
 		var b bytes.Buffer
@@ -152,16 +172,19 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 
 		err = sess.Shell()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return "0", err
 		}
 		_, err = fmt.Fprintf(stdin, "%s\nexit\n", cmd)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return "0", err
 		}
 
 		err = sess.Wait()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return "0", err
 		}
 
 		space := regexp.MustCompile(`\s+`)
@@ -177,6 +200,7 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 		mu.Lock()
 		delete(sshConn, deviceIP)
 		mu.Unlock()
+		log.Println(err)
 		return "0", err
 	}
 	sess, err := sshConn[deviceIP].NewSession()
@@ -187,7 +211,8 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 
 	stdin, err := sess.StdinPipe()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return "0", err
 	}
 
 	var b bytes.Buffer
@@ -195,16 +220,19 @@ func writeConn(deviceIP string, username, pass, cmd string) (string, error) {
 
 	err = sess.Shell()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return "0", err
 	}
 	_, err = fmt.Fprintf(stdin, "%s\nexit\n", cmd)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return "0", err
 	}
 
 	err = sess.Wait()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return "0", err
 	}
 
 	space := regexp.MustCompile(`\s+`)

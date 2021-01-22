@@ -12,6 +12,8 @@ type Device struct {
 	HostName  string             `json:"hostName"`
 	IPAddress string             `json:"ipAddress"`
 	Port      string             `json:"port"`
+	User      string             `json:"user"`
+	Password  string             `json:"password,omitempty"`
 	Type      string             `json:"type"`
 	Vendor    string             `json:"vendor"`
 	Model     string             `json:"model"`
@@ -19,3 +21,10 @@ type Device struct {
 	EOL       time.Time          `json:"eol"`
 	EOS       time.Time          `json:"eos"`
 }
+
+// //DevicePass model with Password
+// type DevicePass struct {
+// 	Device
+// 	User     string `json:"user"`
+// 	Password string `json:"password"`
+// }

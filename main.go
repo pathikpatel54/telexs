@@ -18,6 +18,7 @@ func main() {
 	ac := routes.NewAuthController(getMongoClient())
 	dc := routes.NewDeviceController(getMongoClient())
 	sc := routes.NewSocketController(getMongoClient())
+	mc := routes.NewManagementController(getMongoClient())
 	// sic := routes.NewSocketIOController(getMongoClient())
 
 	router.GET("/auth/google", ac.Login)
@@ -31,6 +32,8 @@ func main() {
 	router.DELETE("/api/device/:id", dc.DeleteDevice)
 
 	router.GET("/api/socket", sc.CheckDeviceStatus)
+
+	router.POST("/api/manage", mc.RunCommand)
 
 	// router.Handler("GET", "/socket.io/", sic.SocketHandler())
 
